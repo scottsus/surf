@@ -1,0 +1,6 @@
+services:
+  server:
+    build:
+      context: ./../..
+      dockerfile: apps/fastapi/Dockerfile
+    restart: always

@@ -1,0 +1,38 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbo",
+    "lint": "next lint",
+    "build": "yarn prisma && next build",
+    "start": "next start",
+    "prisma": "./generate_prisma_client.sh",
+    "vercel-build": "yarn build",
+    "vercel-postbuild": "cp node_modules/@prisma/engines/*query* .vercel_build_output/functions/node/render/;cp prisma/schema.prisma .vercel_build_output/functions/node/render/"
+  },
+  "dependencies": {
+    "@clerk/nextjs": "^6.8.0",
+    "@repo/db": "*",
+    "@repo/ui": "*",
+    "lucide-react": "^0.460.0",
+    "next": "^15.0.4",
+    "react": "^19.0.0-rc.1",
+    "react-dom": "^19.0.0-rc.1",
+    "tailwindcss": "^3.4.15",
+    "tailwindcss-animate": "^1.0.7",
+    "tslib": "^2.8.1"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "*",
+    "@repo/typescript-config": "*",
+    "@types/node": "^20",
+    "@types/react": "^19.0.1",
+    "@types/react-dom": "^19.0.1",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.6",
+    "postcss": "^8.4.49",
+    "typescript": "5.5.4"
+  }
+}

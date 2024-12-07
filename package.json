@@ -1,0 +1,25 @@
+{
+  "name": "turbo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "build": "turbo build"
+  },
+  "devDependencies": {
+    "@ianvs/prettier-plugin-sort-imports": "^4.4.0",
+    "prettier": "^3.3.3",
+    "prettier-plugin-tailwindcss": "^0.6.8",
+    "turbo": "^2.3.0",
+    "typescript": "5.5.4"
+  },
+  "engines": {
+    "node": ">=18 <=20"
+  },
+  "packageManager": "yarn@1.22.22"
+}

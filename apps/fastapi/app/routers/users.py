@@ -1,0 +1,54 @@
+import logging
+from uuid import UUID
+
+from app.db import db
+from app.lib.logger import get_logger
+from app.models.user import UserCreate
+from fastapi import APIRouter, HTTPException
+
+router = APIRouter()
+
+
+logger = get_logger(__name__, logging.DEBUG)
+
+@router.get("/")
+async def get_users():
+    users = await db.user.find_many()
+    return users
+
+
+@router.get("/{user_id}")
+async def get_user(user_id: UUID):
+    user = await db.user.find_unique(where={"id": str(user_id)})
+    if user:
+        return user
+    raise HTTPException(status_code=404, detail="User not found")
+
+
+@router.post("/")
+# UserCreate type strictly required, otherwise FastAPI throws error
+async def create_user(user_data: UserCreate):
+    try:
+        new_user = await db.user.create(data=user_data.dict())
+        return new_user
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.put("/{user_id}")
+async def update_user(user_id: UUID, user_data):
+    try:
+        updated_user = await db.user.update(
+            where={"id": str(user_id)}, data=user_data.dict(exclude_unset=True)
+        )
+        return updated_user
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.delete("/{user_id}", status_code=204)
+async def delete_user(user_id: UUID):
+    try:
+        await db.user.delete(where={"id": str(user_id)})
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

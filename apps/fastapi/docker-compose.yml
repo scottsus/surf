@@ -1,0 +1,12 @@
+services:
+  web:
+    build:
+      context: ./../..
+      dockerfile: apps/fastapi/Dockerfile
+    env_file:
+      - ../../packages/database/.env
+    volumes: # hot reload
+      - .:/app/apps/fastapi
+    ports:
+      - 8042:8042
+    restart: always
