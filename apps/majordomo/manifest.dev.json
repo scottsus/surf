@@ -1,0 +1,15 @@
+{
+  "action": {
+    "default_icon": "public/surf.png",
+    "default_popup": "src/pages/popup/index.html"
+  },
+  "icons": {
+    "128": "public/surf.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["surf.png"],
+      "matches": []
+    }
+  ]
+}
