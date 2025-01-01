@@ -18,8 +18,5 @@
     "turbo": "^2.3.0",
     "typescript": "5.5.4"
   },
-  "engines": {
-    "node": ">=18 <=20"
-  },
   "packageManager": "yarn@1.22.22"
 }
