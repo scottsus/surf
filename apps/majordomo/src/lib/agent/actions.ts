@@ -76,6 +76,7 @@ export async function takeNavigateAction({
     summary: await summarizeAction({ action, success: true }),
   });
 
+  await sleep(1000); // show the navigation status
   return await new Promise<void>((resolve) => {
     chrome.runtime.sendMessage({ action: "navigate", url }, resolve);
   });
@@ -297,42 +298,49 @@ async function moveToElement({
     let newCoords: CursorCoordinate = { x: 0, y: 0 };
 
     let timeoutId: NodeJS.Timeout;
-    const intervalId = setInterval(async () => {
-      opts.setCursorPosition((prev) => {
-        const newX = prev.x + (centerX - prev.x) * 0.1;
-        const newY = prev.y + (centerY - prev.y) * 0.1;
+    let intervalId: NodeJS.Timeout;
+    await new Promise<void>((resolve) => {
+      const intervalId = setInterval(async () => {
+        opts.setCursorPosition((prev) => {
+          const newX = prev.x + (centerX - prev.x) * 0.1;
+          const newY = prev.y + (centerY - prev.y) * 0.1;
 
-        if (Math.abs(newX - centerX) < 1 && Math.abs(newY - centerY) < 1) {
-          clearInterval(intervalId);
+          if (Math.abs(newX - centerX) < 1 && Math.abs(newY - centerY) < 1) {
+            clearInterval(intervalId);
 
-          // ok to not await
-          opts.updateCursorPosition(newCoords);
+            // ok to not await
+            opts.updateCursorPosition(newCoords);
 
-          const element = document.elementFromPoint(
-            centerX,
-            centerY,
-          ) as HTMLElement;
+            const element = document.elementFromPoint(
+              centerX,
+              centerY,
+            ) as HTMLElement;
 
-          timeoutId = setTimeout(() => {
-            const events = ["mousedown", "mouseup", "click"];
-            events.forEach((eventType) => {
-              const event = new MouseEvent(eventType, {
-                bubbles: true,
-                cancelable: true,
-                view: window,
-                clientX: centerX,
-                clientY: centerY,
+            timeoutId = setTimeout(() => {
+              const events = ["mousedown", "mouseup", "click"];
+              opts.clickAction && opts.clickAction.fire();
+              events.forEach((eventType) => {
+                const event = new MouseEvent(eventType, {
+                  bubbles: true,
+                  cancelable: true,
+                  view: window,
+                  clientX: centerX,
+                  clientY: centerY,
+                });
+                element.dispatchEvent(event);
               });
-              element.dispatchEvent(event);
-            });
-            opts.clickAction && opts.clickAction.fire();
-          }, 1000);
-        }
 
-        newCoords = { x: newX, y: newY };
-        return newCoords;
-      });
-    }, 16); // ~60fps
+              resolve(); // this ends the await
+            }, 1000);
+          }
+
+          newCoords = { x: newX, y: newY };
+          return newCoords;
+        });
+      }, 16); // ~60fps
+    });
+
+    await sleep(2000); // some buttons take time
 
     const cleanup = () => {
       clearInterval(intervalId);

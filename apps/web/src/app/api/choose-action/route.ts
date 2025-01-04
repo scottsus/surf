@@ -57,6 +57,9 @@ export async function POST(req: Request) {
       
       You will also receive a sequence of previously attempted actions. These actions are only attempted, and are not guaranteed
       to be completed, so please check from the screenshot to determine whether you need to retry or continue the latest action.
+
+      Most of the time, the previous actions should be successful, so unless you have strong evidence that a previous action was
+      unsuccessful, assume the previous action was already completed!
       
       Here are some things to pay attention to:
        1. remember that some actions require additional attributes

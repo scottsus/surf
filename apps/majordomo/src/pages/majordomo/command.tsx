@@ -35,6 +35,18 @@ export function CommandBar() {
         e.preventDefault();
         setIsVisible((prev) => !prev);
       }
+      if (isVisible && !isNaN(Number(e.key))) {
+        // @TODO: number handler
+        // const numberPressed = Number(e.key);
+        // const suggestion = suggestions.find(
+        //   (_, index) => index + 1 === numberPressed,
+        // );
+        // if (suggestion) {
+        //   setInputValue(suggestion.description);
+        //   setUserIntent(suggestion.description);
+        //   setIsVisible(false);
+        // }
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);

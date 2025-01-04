@@ -71,7 +71,7 @@ export function Cursor() {
       ) : (
         <img
           src={chrome.runtime.getURL("/cursor.svg")}
-          className="fixed z-50 h-[30px] w-[30px]"
+          className="fixed z-50 h-[2rem] w-[2rem]"
           style={{
             left: cursorPosition.x,
             top: cursorPosition.y,
