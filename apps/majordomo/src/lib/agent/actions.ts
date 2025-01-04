@@ -1,3 +1,4 @@
+import { StateMachineInput } from "@rive-app/react-canvas";
 import { CursorCoordinate } from "@src/pages/majordomo/provider";
 import { toast } from "sonner";
 
@@ -93,6 +94,7 @@ export async function takeClickAction({
   historyManager: HistoryManager;
   opts: {
     setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
+    clickAction: StateMachineInput | null;
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
     setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
     setCursorPositionEstimate: React.Dispatch<
@@ -138,6 +140,7 @@ export async function takeInputAction({
   historyManager: HistoryManager;
   opts: {
     setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
+    clickAction: StateMachineInput | null;
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
     setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
     setCursorPositionEstimate: React.Dispatch<
@@ -204,6 +207,7 @@ async function getQuerySelector({
   history: ActionMetadata[];
   opts: {
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
+    clickAction: StateMachineInput | null;
     setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
     setCursorPositionEstimate: React.Dispatch<
       React.SetStateAction<CursorCoordinate>
@@ -268,6 +272,7 @@ async function moveToElement({
   targetX: number;
   targetY: number;
   opts: {
+    clickAction: StateMachineInput | null;
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
     setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
     setCursorPositionEstimate: React.Dispatch<
@@ -320,6 +325,7 @@ async function moveToElement({
               });
               element.dispatchEvent(event);
             });
+            opts.clickAction && opts.clickAction.fire();
           }, 1000);
         }
 

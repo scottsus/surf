@@ -1,3 +1,4 @@
+import { StateMachineInput } from "@rive-app/react-canvas";
 import { CursorCoordinate } from "@src/pages/majordomo/provider";
 import { toast } from "sonner";
 
@@ -28,6 +29,7 @@ export async function runUntilCompletion({
     checkAbortSignal: () => Promise<boolean>;
     clearState: () => Promise<void>;
     setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
+    clickAction: StateMachineInput | null;
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
     setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
     setCursorPositionEstimate: React.Dispatch<
@@ -40,6 +42,7 @@ export async function runUntilCompletion({
     checkAbortSignal,
     clearState,
     setThinkingState,
+    clickAction,
     updateCursorPosition,
     setCursorPosition,
     setCursorPositionEstimate,
@@ -101,6 +104,7 @@ export async function runUntilCompletion({
             historyManager,
             opts: {
               setThinkingState,
+              clickAction,
               updateCursorPosition,
               setCursorPosition,
               setCursorPositionEstimate,
@@ -117,6 +121,7 @@ export async function runUntilCompletion({
             historyManager,
             opts: {
               setThinkingState,
+              clickAction,
               updateCursorPosition,
               setCursorPosition,
               setCursorPositionEstimate,

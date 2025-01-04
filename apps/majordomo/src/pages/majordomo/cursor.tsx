@@ -1,57 +1,40 @@
-import { useRive } from "@rive-app/react-canvas";
 import { stringify } from "@src/lib/interface/action";
 import { useCallback, useEffect } from "react";
 
 import { useMajordomo } from "./provider";
 
 const IS_TESTING = process.env.NODE_ENV === "development" && false;
-const USE_RIVE = false;
+const USE_RIVE = true;
 
 export function Cursor() {
   const {
+    RiveComponent,
     thinkingState,
     setThinkingState,
     cursorPosition,
     cursorPositionEstimate,
   } = useMajordomo();
 
-  const { RiveComponent } = useRive({
-    src: chrome.runtime.getURL("/cursor.riv"),
-    stateMachines: "State Machine 1",
-    autoplay: true,
-  });
-
   const stringifyThinkingState = useCallback(() => {
     switch (thinkingState.type) {
       case "idle":
-        return "🔥 ready";
+        return "ready";
       case "awaiting_ui_changes":
-        return "👀 awaiting UI changes...";
+        return "awaiting UI changes...";
       case "deciding_action":
-        return "🧠 deciding on next action...";
+        return "deciding on next action...";
       case "action":
         return stringify(thinkingState.action);
       case "clicking_button":
-        return "🔍 choosing the right button...";
+        return "choosing the right button...";
       case "require_assistance":
-        return "😩 unable to complete task - require assistance";
+        return "unable to complete task - require assistance";
       case "aborted":
-        return "⚠️ aborted!";
+        return "aborted!";
       case "done":
-        return "🚀 done!";
+        return "done!";
     }
   }, [thinkingState]);
-
-  // useEffect(() => {
-  //   const handleFocusChange = () => {
-  //     const focused = document.activeElement as HTMLElement;
-  //     if (focused?.tagName === "INPUT" || focused?.tagName === "TEXTAREA") {
-  //       const inputElement = focused as HTMLInputElement | HTMLTextAreaElement;
-  //     }
-  //   };
-
-  //   document.addEventListener("focusin", handleFocusChange);
-  // }, []);
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
@@ -73,14 +56,14 @@ export function Cursor() {
   }, [thinkingState]);
 
   return (
-    <div>
+    <div className="z-[2147483647]">
       {USE_RIVE ? (
         <div
           className="absolute"
           style={{
             left: cursorPosition.x,
             top: cursorPosition.y,
-            display: true || thinkingState.type !== "idle" ? "block" : "none",
+            display: thinkingState.type !== "idle" ? "block" : "none",
           }}
         >
           <RiveComponent style={{ width: "50px", height: "50px" }} />
@@ -98,10 +81,10 @@ export function Cursor() {
         />
       )}
       <div
-        className="fixed z-50 flex items-center rounded-md"
+        className="fixed flex items-center rounded-md"
         style={{
           backgroundColor: "#5B7EFF",
-          left: cursorPosition.x + 40,
+          left: cursorPosition.x + 45,
           top: cursorPosition.y + 10,
           padding: "0.5em 0.75em",
           border: "1px solid white",

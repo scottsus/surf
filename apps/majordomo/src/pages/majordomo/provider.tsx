@@ -1,3 +1,8 @@
+import {
+  StateMachineInput,
+  useRive,
+  useStateMachineInput,
+} from "@rive-app/react-canvas";
 import { runUntilCompletion } from "@src/lib/agent";
 import { HistoryManager } from "@src/lib/agent/history-manager";
 import { ActionMetadata } from "@src/lib/interface/action-metadata";
@@ -23,6 +28,8 @@ type MajordomoContextType = {
 
   historyManager: HistoryManager;
 
+  RiveComponent: (props: React.ComponentProps<"canvas">) => JSX.Element;
+
   cursorPosition: CursorCoordinate;
   setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
 
@@ -37,6 +44,7 @@ const MajordomoContext = createContext<MajordomoContextType | undefined>(
 );
 
 export function MajordomoProvider({ children }: { children: React.ReactNode }) {
+  // State
   const initialExtensionState: ExtensionState = {
     userIntent: "",
     history: [],
@@ -50,6 +58,19 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
     type: "idle",
   });
   const historyManager = HistoryManager.getInstance({ appendHistory });
+
+  // Cursor
+  const { rive, RiveComponent } = useRive({
+    src: chrome.runtime.getURL("/cursor.riv"),
+    stateMachines: "State Machine",
+    autoplay: true,
+  });
+  const clickAction = useStateMachineInput(
+    rive,
+    "State Machine",
+    "Click",
+    true,
+  );
   const [cursorPosition, setCursorPosition] = useState<CursorCoordinate>({
     x: window.innerWidth / 2,
     y: window.innerHeight / 2,
@@ -178,6 +199,7 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
         checkAbortSignal,
         clearState,
         setThinkingState,
+        clickAction,
         updateCursorPosition,
         setCursorPosition,
         setCursorPositionEstimate,
@@ -210,6 +232,7 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
         setThinkingState,
         setUserIntent,
         historyManager,
+        RiveComponent,
         updateCursorPosition,
         cursorPosition,
         setCursorPosition,
