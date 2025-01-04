@@ -1,5 +1,16 @@
-import { MicIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { proactiveDomains } from "@src/lib/proactive-domains";
+import {
+  BookCopyIcon,
+  CalendarIcon,
+  CogIcon,
+  CookingPotIcon,
+  FootprintsIcon,
+  MailIcon,
+  MicIcon,
+  ShapesIcon,
+  SquareChevronRightIcon,
+} from "lucide-react";
+import { ComponentType, useEffect, useRef, useState } from "react";
 
 import { useMajordomo } from "./provider";
 
@@ -41,119 +52,238 @@ export function CommandBar() {
   return (
     <form
       id="majordomo"
-      className="pointer-events-auto fixed z-[2147483648] rounded-2xl bg-white p-4"
+      className="pointer-events-auto fixed z-[2147483648] rounded-2xl bg-white"
       style={{
         left: "calc(50vw - 32.5vh)",
         top: "calc(30vh - 5vh)",
         width: "65vh",
-        border: "4px solid #D6DFFF",
+        border: "1px solid #D6DFFF",
         display: isVisible ? "block" : "hidden",
-        boxShadow: "0 0 20px 0px rgb(91, 126, 255)",
+        boxShadow: "0 0 10px 0px rgb(91, 126, 255)",
+        overflow: "hidden",
       }}
     >
-      <div className="flex w-full items-center">
+      <div className="p-4">
         <div
-          className="relative flex w-full items-center rounded-xl p-1"
+          className="flex w-full items-center"
+          style={{ margin: "0 0 1.5em 0" }}
+        >
+          <div
+            className="relative flex w-full items-center rounded-xl p-1"
+            style={{
+              backgroundColor: "#EEF2FF",
+            }}
+          >
+            <input
+              ref={inputRef}
+              placeholder="Talk to surf..."
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              className="w-full rounded-xl bg-transparent p-2 text-xl [&::selection]:bg-blue-200 [&::selection]:text-blue-800"
+              style={{
+                color: "#777980",
+                border: "none",
+                outline: "none",
+                caretColor: "#5B7EFF",
+              }}
+            />
+            {USE_VOICE_MODE && (
+              <div
+                className="absolute right-0 flex cursor-pointer rounded-full bg-white p-1"
+                style={{ marginRight: "10px" }}
+                onMouseEnter={(e) =>
+                  (e.currentTarget.style.backgroundColor = "#ebedf0")
+                }
+                onMouseLeave={(e) =>
+                  (e.currentTarget.style.backgroundColor = "white")
+                }
+              >
+                <MicIcon color="black" />
+              </div>
+            )}
+          </div>
+          <button onClick={onClick} className="hidden" />
+        </div>
+
+        <CustomSuggestions
+          setters={{ setInputValue, setUserIntent, setIsVisible }}
+        />
+
+        <h3
+          className="text-xs font-medium"
           style={{
-            backgroundColor: "#EEF2FF",
+            color: "#BFBFBF",
+            padding: "0 1.3em",
           }}
         >
-          <input
-            ref={inputRef}
-            placeholder="Talk to surf..."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            className="w-full rounded-xl bg-transparent p-2 text-xl [&::selection]:bg-blue-200 [&::selection]:text-blue-800"
-            style={{
-              color: "#777980",
-              border: "none",
-              outline: "none",
-              caretColor: "#5B7EFF",
-            }}
+          SUGGESTIONS
+        </h3>
+        <div className="flex flex-col" style={{ color: "#404040" }}>
+          <Suggestion
+            Icon={CalendarIcon}
+            description="When's my next meeting?"
+            number={4}
+            setters={{ setInputValue, setUserIntent, setIsVisible }}
           />
-          {USE_VOICE_MODE && (
-            <div
-              className="absolute right-0 flex cursor-pointer rounded-full bg-white p-1"
-              style={{ marginRight: "10px" }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.backgroundColor = "#ebedf0")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.backgroundColor = "white")
-              }
-            >
-              <MicIcon color="black" />
-            </div>
-          )}
+          <Suggestion
+            Icon={MailIcon}
+            description="Draft an email reply to Scott"
+            number={5}
+            setters={{ setInputValue, setUserIntent, setIsVisible }}
+          />
+          <Suggestion
+            Icon={MailIcon}
+            description="Draft an email reply to Calix"
+            number={6}
+            setters={{ setInputValue, setUserIntent, setIsVisible }}
+          />
         </div>
-        <button onClick={onClick} className="hidden" />
       </div>
 
-      <h3
-        className="text-sm font-light"
+      <div
+        className="flex items-center gap-x-8"
         style={{
-          color: "#808080",
-          paddingLeft: "0.5em",
+          backgroundColor: "#F7F9FF",
+          padding: "0 1em",
+          justifyContent: "end",
+          color: "#B9BBBF",
         }}
       >
-        SUGGESTIONS
-      </h3>
-      <div className="flex flex-col" style={{ color: "#404040" }}>
-        <p
-          className="rounded-md p-2"
-          style={{ paddingLeft: "1em", margin: 0, cursor: "pointer" }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.backgroundColor = "#ebedf0")
-          }
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.backgroundColor = "transparent")
-          }
-          onClick={(e) => {
-            const input = e.currentTarget.textContent?.trim() ?? "";
-            setInputValue(input);
-            setUserIntent(input);
-            setIsVisible(false);
+        <div className="flex cursor-pointer items-center gap-x-1">
+          <SquareChevronRightIcon size={18} />
+          <p className="text-sm">Action</p>
+        </div>
+        <div
+          style={{
+            backgroundColor: "#DEE0E5",
+            width: "2px",
+            height: "1.5em",
           }}
-        >
-          🎧 Play "never gonna give you up on Youtube"
-        </p>
-        <p
-          className="rounded-md p-2"
-          style={{ paddingLeft: "1em", margin: 0, cursor: "pointer" }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.backgroundColor = "#ebedf0")
-          }
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.backgroundColor = "transparent")
-          }
-          onClick={(e) => {
-            const input = e.currentTarget.textContent?.trim() ?? "";
-            setInputValue(input);
-            setUserIntent(input);
-            setIsVisible(false);
-          }}
-        >
-          📅 When&apos;s my next meeting?
-        </p>
-        <p
-          className="rounded-md p-2"
-          style={{ paddingLeft: "1em", margin: 0, cursor: "pointer" }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.backgroundColor = "#ebedf0")
-          }
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.backgroundColor = "transparent")
-          }
-          onClick={(e) => {
-            const input = e.currentTarget.textContent?.trim() ?? "";
-            setInputValue(input);
-            setUserIntent(input);
-            setIsVisible(false);
-          }}
-        >
-          🏃‍♀️ On running Cloudmonster
-        </p>
+        />
+        <div className="flex cursor-pointer items-center gap-x-1">
+          <CogIcon size={18} />
+          <p className="text-sm">Settings</p>
+        </div>
       </div>
     </form>
+  );
+}
+
+function CustomSuggestions({
+  setters,
+}: {
+  setters: {
+    setInputValue: React.Dispatch<React.SetStateAction<string>>;
+    setUserIntent: (intent: string) => void;
+    setIsVisible: React.Dispatch<React.SetStateAction<boolean>>;
+  };
+}) {
+  const { setInputValue, setUserIntent, setIsVisible } = setters;
+
+  const proactiveDomain = proactiveDomains.find((domain) =>
+    window.location.hostname.includes(domain),
+  );
+  const siteName = proactiveDomain?.split(".").at(-2)?.toUpperCase();
+  if (!siteName) {
+    return <></>;
+  }
+
+  const suggestions = getSuggestions(siteName);
+  if (suggestions.length === 0) {
+    return <></>;
+  }
+
+  return (
+    <div className="">
+      <h3
+        className="text-xs font-medium"
+        style={{
+          color: "#BFBFBF",
+          padding: "0 1.3em",
+        }}
+      >
+        {siteName} SUGGESTIONS
+      </h3>
+      <div className="flex flex-col" style={{ color: "#404040" }}>
+        {suggestions.map((s, index) => (
+          <Suggestion
+            key={index}
+            Icon={s.Icon}
+            description={s.description}
+            number={index + 1}
+            setters={{ setInputValue, setUserIntent, setIsVisible }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function getSuggestions(siteName: string) {
+  return [
+    { Icon: CookingPotIcon, description: "Get me a Lacrusette set" },
+    {
+      Icon: ShapesIcon,
+      description: "Grab the nicest jellycat and add it to cart",
+    },
+    { Icon: FootprintsIcon, description: "On running Cloudmonster" },
+  ];
+}
+
+function Suggestion({
+  Icon,
+  description,
+  number,
+  setters,
+}: {
+  Icon: ComponentType;
+  description: string;
+  number: number;
+  setters: {
+    setInputValue: React.Dispatch<React.SetStateAction<string>>;
+    setUserIntent: (intent: string) => void;
+    setIsVisible: React.Dispatch<React.SetStateAction<boolean>>;
+  };
+}) {
+  const { setInputValue, setUserIntent, setIsVisible } = setters;
+
+  return (
+    <div
+      className="flex cursor-pointer items-center justify-start rounded-md"
+      style={{ padding: "0.05em 1em" }}
+      // hover CSS not working
+      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F7F9FF")}
+      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#FFF")}
+    >
+      <Icon />
+      <p
+        className="rounded-md p-2 text-lg"
+        style={{ margin: 0 }}
+        onClick={(e) => {
+          const input = e.currentTarget.textContent?.trim() ?? "";
+          setInputValue(input);
+          setUserIntent(input);
+          setIsVisible(false);
+        }}
+      >
+        {description}
+      </p>
+      <div
+        className="flex items-center justify-center rounded-md p-1"
+        style={{
+          backgroundColor: "#F7F9FF",
+          margin: "auto 0 auto auto",
+          border: "2px solid #EBF0FF",
+          borderBottom: "5px solid #EBF0FF",
+        }}
+      >
+        <p
+          className="text-sm"
+          style={{ margin: 0, padding: "2px 8px", color: "#B9BBBF" }}
+        >
+          {number}
+        </p>
+      </div>
+    </div>
   );
 }
