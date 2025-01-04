@@ -61,17 +61,17 @@ export function Cursor() {
         <div
           className="absolute"
           style={{
-            left: cursorPosition.x,
-            top: cursorPosition.y,
+            left: cursorPosition.x - 25,
+            top: cursorPosition.y - 15,
             display: thinkingState.type !== "idle" ? "block" : "none",
           }}
         >
-          <RiveComponent style={{ width: "50px", height: "50px" }} />
+          <RiveComponent style={{ width: "5rem", height: "5rem" }} />
         </div>
       ) : (
         <img
           src={chrome.runtime.getURL("/cursor.svg")}
-          className="fixed z-50 h-[2rem] w-[2rem]"
+          className="fixed z-50 h-[30px] w-[30px]"
           style={{
             left: cursorPosition.x,
             top: cursorPosition.y,
