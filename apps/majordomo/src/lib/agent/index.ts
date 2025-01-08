@@ -76,6 +76,8 @@ export async function runUntilCompletion({
         continue;
       }
 
+      console.log(action);
+
       setThinkingState({ type: "action", action });
       switch (action.type) {
         case "navigate":
@@ -88,8 +90,7 @@ export async function runUntilCompletion({
 
         case "click":
           await takeClickAction({
-            screenshot,
-            agentIntent: action.buttonDescription,
+            agentIntent: `aria-label: ${action.ariaLabel}, description: ${action.targetDescription}`,
             action,
             historyManager,
             opts: {
@@ -104,8 +105,7 @@ export async function runUntilCompletion({
 
         case "input":
           await takeInputAction({
-            screenshot,
-            inputDescription: action.inputDescription,
+            inputDescription: `aria-label: ${action.ariaLabel}, description: ${action.targetDescription}`,
             content: action.content,
             action,
             historyManager,

@@ -19,8 +19,8 @@ export async function chooseQuerySelector({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         userIntent,
-        relevantElements: relevantElements.map(elementToString),
-        history,
+        relevantElements: JSON.stringify(relevantElements),
+        history: history.map((h) => JSON.stringify(h)),
       }),
     });
     if (!res.ok) {
@@ -46,7 +46,7 @@ function elementToString(el: DomElement) {
     Role: ${el.role}
     Aria Label: ${el.ariaLabel}
     Aria Role: ${el.ariaRole}
-    Parent: ${el.parentInfo.tagName} (class: ${el.parentInfo.className});
+    Parent: ${el.parentInfo.textContent}
     Bounding Rectangle: [x: ${rect.x}, y: ${rect.y}, width: ${rect.width}, height: ${rect.height}]
     Index: ${el.index}
     Query Selector: ${el.querySelector}

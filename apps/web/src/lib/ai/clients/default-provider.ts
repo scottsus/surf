@@ -1,3 +1,3 @@
-import { claude } from "./anthropic";
+import { claudeHaiku } from "./anthropic";
 
-export const defaultProvider = claude;
+export const defaultProvider = claudeHaiku;

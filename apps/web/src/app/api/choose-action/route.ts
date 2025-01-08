@@ -1,4 +1,5 @@
 import { chooseActionResponseSchema } from "@repo/ai-schemas";
+import { claudeSonnet } from "~/src/lib/ai/clients/anthropic";
 import { defaultProvider } from "~/src/lib/ai/clients/default-provider";
 import { generateObject } from "ai";
 
@@ -35,25 +36,30 @@ export async function POST(req: Request) {
     }
 
     const { object } = await generateObject({
-      headers: {
-        // @TODO needed to bypass CORS
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
-      model: defaultProvider,
+      model: claudeSonnet,
       system: `You are a compiler. Given a userIntent in natural language, and an image of what the user currently sees,
        you pick the best action on what to do next in this webpage from a list of possible actions.
 
       An action takes the following form:
       type Action =
         | { type: "navigate"; url: string }
-        | { type: "click"; buttonDescription: string }
-        | { type: "input"; inputDescription: string; content: string }
+        | { type: "click"; ariaLabel: string; targetDescription: string }
+        | {
+            type: "input";
+            ariaLabel: string;
+            targetDescription: string;
+            content: string;
+            withSubmit: boolean;
+          }
         | { type: "refresh" }
         | { type: "back" }
-        | { type: "done" }
+        | { type: "done" };
       
-      Furthermore, you can only click on one thing at a time, so if you need to click on multiple things, just choose the next
-      one on the list, as opposed to including all of them in the description.
+      Be smart with the aria labels. It's not like you need to guess the exact aria labels, but be descriptive yet concise.
+      Don't use 1-word aria labels if possible. Use keywords that deliver the intention - don't make it too long or too short!
+
+      On the other hand, be very specific with the targetDescription! Be specific with what text the element contains. However,
+      if there's no targetDescription, just leave this empty.
       
       You will also receive a sequence of previously attempted actions. These actions are only attempted, and are not guaranteed
       to be completed, so please check from the screenshot to determine whether you need to retry or continue the latest action.
@@ -63,8 +69,7 @@ export async function POST(req: Request) {
       
       Here are some things to pay attention to:
        1. remember that some actions require additional attributes
-       2. make sure to only pick 1 of those 5 options.
-       3. look at the previous string of actions! there's a good chance you're already done.
+       2. look at the previous string of actions! there's a good chance you're already done.
       `,
       messages: [
         {

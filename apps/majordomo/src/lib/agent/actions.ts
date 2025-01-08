@@ -83,13 +83,11 @@ export async function takeNavigateAction({
 }
 
 export async function takeClickAction({
-  screenshot,
   agentIntent,
   action,
   historyManager,
   opts,
 }: {
-  screenshot: string;
   agentIntent: string;
   action: Action;
   historyManager: HistoryManager;
@@ -104,7 +102,6 @@ export async function takeClickAction({
   };
 }): Promise<{ querySelector: string }> {
   const querySelectorResponse = await getQuerySelector({
-    screenshot,
     agentIntent,
     history: historyManager.getLocalHistory(),
     opts,
@@ -127,14 +124,12 @@ export async function takeClickAction({
 }
 
 export async function takeInputAction({
-  screenshot,
   inputDescription,
   content,
   action,
   historyManager,
   opts,
 }: {
-  screenshot: string;
   inputDescription: string;
   content: string;
   action: Action;
@@ -150,7 +145,6 @@ export async function takeInputAction({
   };
 }): Promise<{ querySelector: string }> {
   const querySelectorResponse = await getQuerySelector({
-    screenshot,
     agentIntent: inputDescription,
     history: historyManager.getLocalHistory(),
     opts,
@@ -168,9 +162,15 @@ export async function takeInputAction({
   }
   await sleep(1000);
 
-  const inputElement = element as HTMLInputElement;
-  inputElement.value = content;
-  inputElement.closest("form")?.submit();
+  const inputElement = element as HTMLElement;
+  if (inputElement instanceof HTMLInputElement) {
+    inputElement.value = content;
+  } else if (inputElement.isContentEditable) {
+    inputElement.textContent = content;
+  }
+  if (action.type === "input" && action.withSubmit) {
+    inputElement.closest("form")?.submit();
+  }
 
   await historyManager.updateHistory({
     action,
@@ -198,12 +198,10 @@ export async function takeBackAction() {
 }
 
 async function getQuerySelector({
-  screenshot,
   agentIntent,
   history,
   opts,
 }: {
-  screenshot: string;
   agentIntent: string;
   history: ActionMetadata[];
   opts: {
@@ -215,25 +213,20 @@ async function getQuerySelector({
     >;
   };
 }) {
-  const elementPosition = await estimateElementLocation({
-    userIntent: agentIntent,
-    screenshot,
-    dimensions: { width: window.innerWidth, height: window.innerHeight },
-  });
-  if (!elementPosition || !elementPosition.ok) {
-    toast.error("unable to estimate element location on screen");
-    return;
-  }
-  const { xEstimate, yEstimate } = elementPosition;
+  // const elementPosition = await estimateElementLocation({
+  //   userIntent: agentIntent,
+  //   screenshot,
+  //   dimensions: { width: window.innerWidth, height: window.innerHeight },
+  // });
+  // if (!elementPosition || !elementPosition.ok) {
+  //   toast.error("unable to estimate element location on screen");
+  //   return;
+  // }
+  // const { xEstimate, yEstimate } = elementPosition;
 
-  opts.setCursorPositionEstimate({ x: xEstimate, y: yEstimate });
+  // opts.setCursorPositionEstimate({ x: xEstimate, y: yEstimate });
 
-  const relevantElements = getRelevantElements({
-    opts: {
-      xEstimate,
-      yEstimate,
-    },
-  });
+  const relevantElements = getRelevantElements();
 
   const querySelectorResponse = await chooseQuerySelector({
     userIntent: agentIntent,
@@ -252,6 +245,8 @@ async function getQuerySelector({
     toast.error("unable to find target element");
     return;
   }
+
+  console.log("target:", targetElement);
 
   const { querySelector, boundingRect } = targetElement;
 
@@ -282,13 +277,18 @@ async function moveToElement({
   };
 }): Promise<{ ok: boolean; element: Element | null }> {
   try {
-    const target = getClosestElementFromEstimate({
-      querySelector,
-      targetX,
-      targetY,
-    });
+    // const target = getClosestElementFromEstimate({
+    //   querySelector,
+    //   targetX,
+    //   targetY,
+    // });
+    // if (!target) {
+    //   toast.error("no elements found within the specified radius");
+    //   return { ok: false, element: null };
+    // }
+    const target = document.querySelector(querySelector);
     if (!target) {
-      toast.error("no elements found within the specified radius");
+      toast.error("no element found");
       return { ok: false, element: null };
     }
 
@@ -355,48 +355,14 @@ async function moveToElement({
   }
 }
 
-function getClosestElementFromEstimate({
-  querySelector,
-  targetX,
-  targetY,
-}: {
-  querySelector: string;
-  targetX: number;
-  targetY: number;
-}) {
-  const targets = Array.from(document.querySelectorAll(querySelector));
-
-  const target: Element | null = targets.reduce((closest, current) => {
-    const rect = current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const distance = Math.sqrt(
-      Math.pow(centerX - targetX, 2) + Math.pow(centerY - targetY, 2),
-    );
-    if (!closest) {
-      return current;
-    }
-
-    const closestRect = closest.getBoundingClientRect();
-    const closestCenterX = closestRect.left + closestRect.width / 2;
-    const closestCenterY = closestRect.top + closestRect.height / 2;
-    const closestDistance = Math.sqrt(
-      Math.pow(closestCenterX - targetX, 2) +
-        Math.pow(closestCenterY - targetY, 2),
-    );
-
-    return distance < closestDistance ? current : closest;
-  });
-
-  return target;
-}
-
 export function printHistory(history: ActionMetadata[]) {
   console.log("---------\n");
   for (const h of history) {
     console.log(`${h.summary}, ${h.querySelector}`);
   }
 }
+
+async function typeIntoElement(element: HTMLElement, content: string) {}
 
 /**
  * 1. what is the success criteria?

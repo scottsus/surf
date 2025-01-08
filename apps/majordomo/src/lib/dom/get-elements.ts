@@ -1,33 +1,23 @@
-export function getRelevantElements({
-  opts,
-}: {
-  opts: {
-    xEstimate: number;
-    yEstimate: number;
-  };
-}) {
-  const { xEstimate, yEstimate } = opts;
+import { DomElement } from "../interface/element";
 
+export function getRelevantElements() {
   /**
    * for now, we classify relevant elements as elements that are <= RADIUS
    * distance away from the estimate of the vision model
    */
-  return getElementsWithinRadiusOfEstimate({ xEstimate, yEstimate });
+  return getElementsWithinRadiusOfEstimate();
 }
 
 const DEFAULT_RADIUS = 200;
-function getElementsWithinRadiusOfEstimate({
-  xEstimate,
-  yEstimate,
-  radius = DEFAULT_RADIUS,
-}: {
-  xEstimate: number;
-  yEstimate: number;
-  radius?: number;
-}): DomElement[] {
+function getElementsWithinRadiusOfEstimate(): DomElement[] {
   const interactiveElements = getInteractiveElements();
 
   const elements: DomElement[] = Array.from(interactiveElements)
+    .filter(
+      (el) =>
+        getComputedStyle(el).visibility !== "hidden" &&
+        getComputedStyle(el).display !== "none",
+    )
     .map((el, idx) => ({
       // core semantic info
       tagName: el.tagName,
@@ -38,6 +28,7 @@ function getElementsWithinRadiusOfEstimate({
       parentInfo: {
         tagName: el.parentElement?.tagName ?? "",
         className: el.parentElement?.className ?? "",
+        textContent: getParentTextContent(el, 20),
       },
 
       // visual info
@@ -55,22 +46,18 @@ function getElementsWithinRadiusOfEstimate({
         el.boundingRect.height > 0,
     )
     .filter((el) => {
-      // find the closest point on the rectangle to the circle's center
-      const closestX = Math.max(
-        el.boundingRect.x,
-        Math.min(xEstimate, el.boundingRect.x + el.boundingRect.width),
-      );
-      const closestY = Math.max(
-        el.boundingRect.y,
-        Math.min(yEstimate, el.boundingRect.y + el.boundingRect.height),
-      );
+      const rect = el.boundingRect;
+      const viewportWidth =
+        window.innerWidth || document.documentElement.clientWidth;
+      const viewportHeight =
+        window.innerHeight || document.documentElement.clientHeight;
 
-      // distance from closest point to circle center
-      const distance = Math.sqrt(
-        Math.pow(closestX - xEstimate, 2) + Math.pow(closestY - yEstimate, 2),
+      return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= viewportHeight &&
+        rect.right <= viewportWidth
       );
-
-      return distance <= radius;
     });
 
   return elements;
@@ -179,4 +166,39 @@ function getElementSelector(el: Element): string {
   }
 
   return path.join(" > ");
+}
+
+function getParentTextContent(
+  el: Element,
+  maxDepth: number = 20,
+  stopAtElements: string[] = ["body"],
+  maxLength: number = 100,
+): string {
+  let textContent = "";
+  let currentDepth = 0;
+  let currentElement: Node | null = el;
+
+  while (
+    currentElement &&
+    currentDepth < maxDepth &&
+    !stopAtElements.includes(currentElement.nodeName.toLowerCase()) &&
+    textContent.length < maxLength
+  ) {
+    if (currentElement.nodeType === Node.ELEMENT_NODE) {
+      const element = currentElement as Element;
+      const elementText = element.textContent?.trim() || "";
+
+      if (textContent.length + elementText.length <= maxLength) {
+        textContent = elementText;
+      } else {
+        textContent = `${elementText.slice(0, maxLength)}...`;
+        break; // Stop collecting text if the length exceeds maxLength
+      }
+    }
+
+    currentElement = currentElement.parentNode;
+    currentDepth++;
+  }
+
+  return textContent;
 }
