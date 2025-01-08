@@ -18,6 +18,7 @@ module.exports = {
             boxShadow: "inset 0 0 150px 30px rgba(0, 89, 255, 0.2)",
           },
         },
+        "static-shadow": "inset 0 0 100px 20px rgba(0, 89, 255, 0.4)",
       },
     },
   },

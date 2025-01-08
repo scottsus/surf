@@ -1,6 +1,6 @@
+import { useWindowSize } from "@src/hooks/use-window-size";
 import { proactiveDomains } from "@src/lib/proactive-domains";
 import {
-  BookCopyIcon,
   CalendarIcon,
   CogIcon,
   CookingPotIcon,
@@ -21,6 +21,38 @@ export function CommandBar() {
   const [isVisible, setIsVisible] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const { windowSize } = useWindowSize();
+  const WINDOW_SIZES = {
+    width: {
+      small: "80vw",
+      medium: "50vw",
+      wide: "38vw",
+    },
+    left: {
+      small: "40vw",
+      medium: "25vw",
+      wide: "19vw",
+    },
+  };
+  const commandSizes = {
+    width:
+      windowSize.width !== undefined
+        ? windowSize.width < 1800
+          ? windowSize.width < 1200
+            ? WINDOW_SIZES.width.small
+            : WINDOW_SIZES.width.medium
+          : WINDOW_SIZES.width.wide
+        : WINDOW_SIZES.width.wide,
+    left:
+      windowSize.width !== undefined
+        ? windowSize.width < 1800
+          ? windowSize.width < 1200
+            ? WINDOW_SIZES.left.small
+            : WINDOW_SIZES.left.medium
+          : WINDOW_SIZES.left.wide
+        : WINDOW_SIZES.left.wide,
+  };
 
   async function onClick(e: React.MouseEvent) {
     e.preventDefault();
@@ -66,9 +98,9 @@ export function CommandBar() {
       id="majordomo"
       className="pointer-events-auto fixed z-[2147483648] rounded-2xl bg-white"
       style={{
-        left: "calc(50vw - 32.5vh)",
+        left: `calc(50vw - ${commandSizes.left})`,
         top: "calc(30vh - 5vh)",
-        width: "65vh",
+        width: commandSizes.width,
         border: "1px solid #D6DFFF",
         display: isVisible ? "block" : "hidden",
         boxShadow: "0 0 10px 0px rgb(91, 126, 255)",
@@ -125,10 +157,12 @@ export function CommandBar() {
           className="text-xs font-medium"
           style={{
             color: "#BFBFBF",
-            padding: "0 1.3em",
+            fontWeight: 550,
+            padding: "0 0.6em",
+            margin: "1.5em 0 0.4em 0",
           }}
         >
-          SUGGESTIONS
+          GENERAL
         </h3>
         <div className="flex flex-col" style={{ color: "#404040" }}>
           <Suggestion
@@ -211,7 +245,9 @@ function CustomSuggestions({
         className="text-xs font-medium"
         style={{
           color: "#BFBFBF",
-          padding: "0 1.3em",
+          fontWeight: 550,
+          padding: "0 0.6em",
+          margin: "0.4em 0",
         }}
       >
         {siteName} SUGGESTIONS
@@ -261,15 +297,15 @@ function Suggestion({
 
   return (
     <div
-      className="flex cursor-pointer items-center justify-start rounded-md"
-      style={{ padding: "0.05em 1em" }}
+      className="flex cursor-pointer items-center justify-start rounded-lg"
+      style={{ padding: "0.25em 0.6em" }}
       // hover CSS not working
       onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F7F9FF")}
       onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#FFF")}
     >
       <Icon />
       <p
-        className="rounded-md p-2 text-lg"
+        className="rounded-md p-2"
         style={{ margin: 0 }}
         onClick={(e) => {
           const input = e.currentTarget.textContent?.trim() ?? "";
@@ -281,12 +317,12 @@ function Suggestion({
         {description}
       </p>
       <div
-        className="flex items-center justify-center rounded-md p-1"
+        className="flex items-center justify-center rounded-md"
         style={{
           backgroundColor: "#F7F9FF",
           margin: "auto 0 auto auto",
-          border: "2px solid #EBF0FF",
-          borderBottom: "5px solid #EBF0FF",
+          border: "1.5px solid #EBF0FF",
+          borderBottom: "4px solid #EBF0FF",
         }}
       >
         <p

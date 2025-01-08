@@ -26,7 +26,6 @@ export async function runUntilCompletion({
   extensionState: ExtensionState;
   historyManager: HistoryManager;
   opts: {
-    checkAbortSignal: () => Promise<boolean>;
     clearState: () => Promise<void>;
     setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
     clickAction: StateMachineInput | null;
@@ -39,7 +38,6 @@ export async function runUntilCompletion({
 }) {
   const { userIntent } = extensionState;
   const {
-    checkAbortSignal,
     clearState,
     setThinkingState,
     clickAction,
@@ -55,14 +53,6 @@ export async function runUntilCompletion({
       i += 1;
       setThinkingState({ type: "awaiting_ui_changes" });
       await sleep(1500);
-
-      const abort = await checkAbortSignal();
-      if (abort) {
-        await clearState();
-        setThinkingState({ type: "aborted" });
-        runInProgress = false; // extra redundancy
-        break;
-      }
 
       const { ok, screenshot } = await takeScreenshot();
       if (!ok) {

@@ -1,8 +1,4 @@
-import {
-  StateMachineInput,
-  useRive,
-  useStateMachineInput,
-} from "@rive-app/react-canvas";
+import { useRive, useStateMachineInput } from "@rive-app/react-canvas";
 import { runUntilCompletion } from "@src/lib/agent";
 import { HistoryManager } from "@src/lib/agent/history-manager";
 import { ActionMetadata } from "@src/lib/interface/action-metadata";
@@ -168,21 +164,10 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
     });
   }
 
-  /**
-   * async setState
-   */
-  async function setAbortSignal() {
-    const newState = await new Promise<ExtensionState>((resolve) => {
-      setExtensionState((currentState) => {
-        const newState: ExtensionState = {
-          ...currentState,
-          abort: true,
-        };
-        resolve(newState);
-        return newState;
-      });
+  async function abort() {
+    return await new Promise<void>((resolve) => {
+      chrome.runtime.sendMessage({ action: "abort" }, resolve);
     });
-    await saveState(newState);
   }
 
   useEffect(() => {
@@ -196,7 +181,6 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
       extensionState,
       historyManager,
       opts: {
-        checkAbortSignal,
         clearState,
         setThinkingState,
         clickAction,
@@ -212,11 +196,12 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
       if (e.ctrlKey && e.key === "c") {
         e.preventDefault();
-        setAbortSignal();
         toast.info("❌ cancelling current task...");
+        await clearState();
+        await abort();
       }
     };
     window.addEventListener("keydown", handleKeyDown);

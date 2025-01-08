@@ -4,7 +4,6 @@ import { useCallback, useEffect } from "react";
 import { useMajordomo } from "./provider";
 
 const IS_TESTING = process.env.NODE_ENV === "development" && false;
-const USE_RIVE = true;
 
 export function Cursor() {
   const {
@@ -57,29 +56,17 @@ export function Cursor() {
 
   return (
     <div className="z-[2147483647]">
-      {USE_RIVE ? (
-        <div
-          className="absolute"
-          style={{
-            left: cursorPosition.x - 25,
-            top: cursorPosition.y - 15,
-            display: thinkingState.type !== "idle" ? "block" : "none",
-          }}
-        >
-          <RiveComponent style={{ width: "5rem", height: "5rem" }} />
-        </div>
-      ) : (
-        <img
-          src={chrome.runtime.getURL("/cursor.svg")}
-          className="fixed z-50 h-[30px] w-[30px]"
-          style={{
-            left: cursorPosition.x,
-            top: cursorPosition.y,
-            display: thinkingState.type !== "idle" ? "block" : "none",
-          }}
-          alt="" // intentionally blank
-        />
-      )}
+      <div
+        className="absolute"
+        style={{
+          left: cursorPosition.x - 60,
+          top: cursorPosition.y - 40,
+          display: thinkingState.type !== "idle" ? "block" : "none",
+          zIndex: 2147483647,
+        }}
+      >
+        <RiveComponent style={{ width: "8rem", height: "8rem" }} />
+      </div>
       <div
         className="fixed flex items-center rounded-md"
         style={{
@@ -87,7 +74,7 @@ export function Cursor() {
           left: cursorPosition.x + 45,
           top: cursorPosition.y + 10,
           padding: "0.5em 0.75em",
-          border: "1px solid white",
+          border: "2px solid #4D6CDB",
           display: thinkingState.type !== "idle" ? "block" : "none",
         }}
       >

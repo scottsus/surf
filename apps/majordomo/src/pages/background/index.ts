@@ -10,7 +10,7 @@ async function screenshot() {
       active: true,
       currentWindow: true,
     });
-    if (!tab.id) {
+    if (!tab?.id) {
       return;
     }
 
@@ -28,7 +28,7 @@ async function navigate({ url }: { url: string }) {
     active: true,
     currentWindow: true,
   });
-  if (!tab.id) {
+  if (!tab?.id) {
     return;
   }
 
@@ -40,7 +40,7 @@ async function refresh() {
     active: true,
     currentWindow: true,
   });
-  if (!tab.id) return;
+  if (!tab?.id) return;
 
   await chrome.tabs.reload(tab.id);
 }
@@ -50,9 +50,13 @@ async function back() {
     active: true,
     currentWindow: true,
   });
-  if (!tab.id) return;
+  if (!tab?.id) return;
 
   await chrome.tabs.goBack(tab.id);
+}
+
+async function abort() {
+  chrome.runtime.reload();
 }
 
 chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
@@ -118,6 +122,16 @@ chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
 chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
   if (message.action === "clear_state") {
     clearState().then(() => {
+      sendResponse({ ok: true });
+    });
+  }
+
+  return true;
+});
+
+chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
+  if (message.action === "abort") {
+    abort().then(() => {
       sendResponse({ ok: true });
     });
   }

@@ -10,7 +10,6 @@
     "type": "module"
   },
   "action": {
-    "default_popup": "src/pages/popup/index.html",
     "default_icon": {
       "32": "surf.png"
     }

@@ -302,8 +302,8 @@ async function moveToElement({
     await new Promise<void>((resolve) => {
       const intervalId = setInterval(async () => {
         opts.setCursorPosition((prev) => {
-          const newX = prev.x + (centerX - prev.x) * 0.1;
-          const newY = prev.y + (centerY - prev.y) * 0.1;
+          const newX = prev.x + (centerX - prev.x) * 0.3;
+          const newY = prev.y + (centerY - prev.y) * 0.3;
 
           if (Math.abs(newX - centerX) < 1 && Math.abs(newY - centerY) < 1) {
             clearInterval(intervalId);
@@ -331,13 +331,13 @@ async function moveToElement({
               });
 
               resolve(); // this ends the await
-            }, 1000);
+            }, 500);
           }
 
           newCoords = { x: newX, y: newY };
           return newCoords;
         });
-      }, 16); // ~60fps
+      }, 16);
     });
 
     await sleep(2000); // some buttons take time
