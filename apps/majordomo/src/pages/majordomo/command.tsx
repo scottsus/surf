@@ -123,12 +123,14 @@ export function CommandBar() {
               placeholder="Talk to surf..."
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              className="w-full rounded-xl bg-transparent p-2 text-xl [&::selection]:bg-blue-200 [&::selection]:text-blue-800"
+              className="w-full rounded-xl bg-transparent text-xl [&::selection]:bg-blue-200 [&::selection]:text-blue-800"
               style={{
+                fontSize: "1em",
                 color: "#777980",
                 border: "none",
                 outline: "none",
                 caretColor: "#5B7EFF",
+                padding: "0.5em",
               }}
             />
             {USE_VOICE_MODE && (

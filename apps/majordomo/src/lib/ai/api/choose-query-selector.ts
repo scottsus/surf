@@ -35,20 +35,3 @@ export async function chooseQuerySelector({
     console.error("chooseQuerySelector:", err);
   }
 }
-
-function elementToString(el: DomElement) {
-  const MAX_TEXT_LEN = 2_048;
-
-  const rect = el.boundingRect;
-
-  return `Element: ${el.tagName.toLowerCase()}
-    Text: ${el.textContent.slice(0, MAX_TEXT_LEN)}
-    Role: ${el.role}
-    Aria Label: ${el.ariaLabel}
-    Aria Role: ${el.ariaRole}
-    Parent: ${el.parentInfo.textContent}
-    Bounding Rectangle: [x: ${rect.x}, y: ${rect.y}, width: ${rect.width}, height: ${rect.height}]
-    Index: ${el.index}
-    Query Selector: ${el.querySelector}
-    `;
-}

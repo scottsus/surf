@@ -1,5 +1,5 @@
 import { chooseQuerySelectorResponseSchema } from "@repo/ai-schemas";
-import { claudeSonnet } from "~/src/lib/ai/clients/anthropic";
+import { claudeHaiku, claudeSonnet } from "~/src/lib/ai/clients/anthropic";
 import { defaultProvider } from "~/src/lib/ai/clients/default-provider";
 import { generateObject } from "ai";
 
@@ -88,7 +88,7 @@ async function chooseMostLikelyQuerySelector({
   }
 
   const { object } = await generateObject({
-    model: claudeSonnet,
+    model: claudeHaiku,
     system: `You are an expert screen reader, and your job is to pick the most relevant query selectors for a given user intent.
       
       Here are some things to pay attention to:

@@ -1,6 +1,5 @@
 import { chooseActionResponseSchema } from "@repo/ai-schemas";
 import { claudeSonnet } from "~/src/lib/ai/clients/anthropic";
-import { defaultProvider } from "~/src/lib/ai/clients/default-provider";
 import { generateObject } from "ai";
 
 const LOG_PREV_ACTIONS = process.env.NODE_ENV === "development" && true;
@@ -32,7 +31,7 @@ export async function POST(req: Request) {
             .join("\n\n")
         : [];
     if (LOG_PREV_ACTIONS && prevActions) {
-      console.log("Previous actions:\n\n", prevActions);
+      console.log("Previous actions:\n", prevActions);
     }
 
     const { object } = await generateObject({

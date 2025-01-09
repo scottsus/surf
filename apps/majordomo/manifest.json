@@ -21,7 +21,6 @@
     "128": "surf.png"
   },
   "permissions": [
-    "activeTab",
     "tabs",
     "scripting"
   ],

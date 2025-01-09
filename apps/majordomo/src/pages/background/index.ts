@@ -1,8 +1,10 @@
 import { ExtensionState } from "@src/lib/interface/state";
 
-import { clearState, loadState, saveState } from "./state";
+import { ExtensionStateManager } from "./state";
 
 console.log("background script loaded");
+
+const extensionStateManager = ExtensionStateManager.getInstance();
 
 async function screenshot() {
   try {
@@ -101,9 +103,7 @@ chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
 
 chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
   if (message.action === "load_state") {
-    loadState().then((extensionState) => {
-      sendResponse(extensionState);
-    });
+    sendResponse(extensionStateManager.loadState());
   }
 
   return true;
@@ -111,9 +111,8 @@ chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
 
 chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
   if (message.action === "save_state") {
-    saveState(message.state as ExtensionState).then(() => {
-      sendResponse({ ok: true });
-    });
+    extensionStateManager.updateState(message.state as Partial<ExtensionState>);
+    sendResponse({ ok: true });
   }
 
   return true;
@@ -121,9 +120,8 @@ chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
 
 chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
   if (message.action === "clear_state") {
-    clearState().then(() => {
-      sendResponse({ ok: true });
-    });
+    extensionStateManager.clearState();
+    sendResponse({ ok: true });
   }
 
   return true;

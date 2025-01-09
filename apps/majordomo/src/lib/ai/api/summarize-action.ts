@@ -8,19 +8,22 @@ export async function summarizeAction({
   success,
 }: {
   action: Action;
-  success: boolean;
+  success?: boolean;
 }) {
+  const successStatus =
+    success === undefined ? "Attempt" : success ? "Successfully" : "Failed to";
+
   switch (action.type) {
     case "navigate":
-      return `Attempt navigate to ${action.url}`;
+      return `${successStatus} navigate to ${action.url}`;
     case "click":
-      return `Attempt click on "${action.ariaLabel}"`;
+      return `${successStatus} click on "${action.ariaLabel}"`;
     case "input":
-      return `Attempt enter "${action.content}" into ${action.ariaLabel}`;
+      return `${successStatus} enter "${action.content}" into ${action.ariaLabel}`;
     case "refresh":
-      return `Attempt refresh the page`;
+      return `${successStatus} refresh the page`;
     case "back":
-      return `Attempt go back to the previous page`;
+      return `${successStatus} go back to the previous page`;
     case "done":
       return `Task completed`;
   }
