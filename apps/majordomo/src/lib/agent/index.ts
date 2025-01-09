@@ -172,6 +172,11 @@ export async function runUntilCompletion({
           break;
       }
 
+      /**
+       * we do this because a "runnable" has the chance to navigate out of the page
+       * resetting the execution context. if there is any cleanup to be done, it should
+       * be right before this action.
+       */
       if (runnable) {
         await appendHistory({
           action,
