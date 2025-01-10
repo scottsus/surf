@@ -10,6 +10,14 @@
     "@ai-sdk/provider" "1.0.3"
     "@ai-sdk/provider-utils" "2.0.5"
 
+"@ai-sdk/google@^1.0.14":
+  version "1.0.14"
+  resolved "https://registry.yarnpkg.com/@ai-sdk/google/-/google-1.0.14.tgz#661bdc7ddf1a6897ade3126cbba78b03d3dbe89e"
+  integrity sha512-Yktuqc6NBByTPoLgeu+ZvMzmX20E4H7BnLHjHCerugy+7LADFRouYJ3U8z7PAk9vENZmfB0+BwOM4tq8AL8Hhw==
+  dependencies:
+    "@ai-sdk/provider" "1.0.4"
+    "@ai-sdk/provider-utils" "2.0.7"
+
 "@ai-sdk/openai@^1.0.11":
   version "1.0.11"
   resolved "https://registry.yarnpkg.com/@ai-sdk/openai/-/openai-1.0.11.tgz#895d348d4cbc07a94834b54ff5192828d0e253a0"
@@ -40,6 +48,16 @@
   version "2.0.6"
   resolved "https://registry.yarnpkg.com/@ai-sdk/provider-utils/-/provider-utils-2.0.6.tgz#ef26bd7f27a1dc5fe203ea99bebc2f2d40e79f96"
   integrity sha512-nB0rPwIBSCk0UkfdkprAxQ45ZjfKlk+Ts5zvIBQkJ5SnTCL9meg6bW65aomQrxhdvtqZML2jjaWTI8/l6AIVlQ==
+  dependencies:
+    "@ai-sdk/provider" "1.0.4"
+    eventsource-parser "^3.0.0"
+    nanoid "^3.3.8"
+    secure-json-parse "^2.7.0"
+
+"@ai-sdk/provider-utils@2.0.7":
+  version "2.0.7"
+  resolved "https://registry.yarnpkg.com/@ai-sdk/provider-utils/-/provider-utils-2.0.7.tgz#2d905dd8688460d2ad3a3e3c41f1f2b6868da601"
+  integrity sha512-4sfPlKEALHPXLmMFcPlYksst3sWBJXmCDZpIBJisRrmwGG6Nn3mq0N1Zu/nZaGcrWZoOY+HT2Wbxla1oTElYHQ==
   dependencies:
     "@ai-sdk/provider" "1.0.4"
     eventsource-parser "^3.0.0"

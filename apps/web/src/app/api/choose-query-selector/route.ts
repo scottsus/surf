@@ -1,6 +1,5 @@
 import { chooseQuerySelectorResponseSchema } from "@repo/ai-schemas";
-import { claudeHaiku, claudeSonnet } from "~/src/lib/ai/clients/anthropic";
-import { defaultProvider } from "~/src/lib/ai/clients/default-provider";
+import { claudeHaiku } from "~/src/lib/ai/clients/anthropic";
 import { generateObject } from "ai";
 
 const LOG_PROMPT = process.env.NODE_ENV === "development" && false;
@@ -18,43 +17,24 @@ export async function POST(req: Request) {
 
     const relevantElementsParsed: DomElement[] = JSON.parse(relevantElements);
 
-    const MAX_CHUNK_LEN = 64_000;
-    const batches: string[][] = [];
-    let elementBatch: string[] = [];
-    let elementBatchSize = 0;
-    for (const parsed of relevantElementsParsed) {
-      const el = elementToString(parsed);
-      if (elementBatchSize + el.length > MAX_CHUNK_LEN) {
-        batches.push(elementBatch);
-        elementBatch = [];
-        elementBatchSize = 0;
-      }
-      elementBatch.push(el);
-      elementBatchSize += el.length;
+    let finalQuerySelectorIndex;
+    const MAX_CHUNK_LEN = 128_000;
+    if (relevantElements.length > MAX_CHUNK_LEN) {
+      console.log("voteOnBestQuerySelector...");
+      finalQuerySelectorIndex = await voteOnBestQuerySelector({
+        userIntent,
+        elements: relevantElementsParsed,
+        history,
+      });
+    } else {
+      console.log("chooseMostLikelyQuerySelector...");
+      const elements = relevantElementsParsed.map(elementToString);
+      finalQuerySelectorIndex = await chooseMostLikelyQuerySelector({
+        userIntent,
+        relevantElements: elements,
+        history,
+      });
     }
-    batches.push(elementBatch);
-
-    const filteredRelevantElements = await Promise.all(
-      batches.map(async (batch) =>
-        chooseMostLikelyQuerySelector({
-          userIntent,
-          relevantElements: batch,
-          history,
-        }),
-      ),
-    );
-    const filteredRelevantElementsFinal = filteredRelevantElements
-      .map((el) =>
-        relevantElementsParsed.find((parsed) => el.index === parsed.index),
-      )
-      .filter((el) => el !== undefined)
-      .map(elementToString);
-
-    const finalQuerySelectorIndex = await chooseMostLikelyQuerySelector({
-      userIntent,
-      relevantElements: filteredRelevantElementsFinal,
-      history,
-    });
 
     return new Response(JSON.stringify(finalQuerySelectorIndex), {
       status: 200,
@@ -103,6 +83,54 @@ async function chooseMostLikelyQuerySelector({
   return object;
 }
 
+async function voteOnBestQuerySelector({
+  userIntent,
+  elements,
+  history,
+}: {
+  userIntent: string;
+  elements: DomElement[];
+  history: string[];
+}) {
+  const MAX_CHUNK_LEN = 64_000;
+  const batches: string[][] = [];
+  let elementBatch: string[] = [];
+  let elementBatchSize = 0;
+  for (const parsed of elements) {
+    const el = elementToString(parsed);
+    if (elementBatchSize + el.length > MAX_CHUNK_LEN) {
+      batches.push(elementBatch);
+      elementBatch = [];
+      elementBatchSize = 0;
+    }
+    elementBatch.push(el);
+    elementBatchSize += el.length;
+  }
+  batches.push(elementBatch);
+
+  const filteredRelevantElements = await Promise.all(
+    batches.map(async (batch) =>
+      chooseMostLikelyQuerySelector({
+        userIntent,
+        relevantElements: batch,
+        history,
+      }),
+    ),
+  );
+  const filteredRelevantElementsFinal = filteredRelevantElements
+    .map((el) => elements.find((parsed) => el.index === parsed.index))
+    .filter((el) => el !== undefined)
+    .map(elementToString);
+
+  const finalQuerySelectorIndex = await chooseMostLikelyQuerySelector({
+    userIntent,
+    relevantElements: filteredRelevantElementsFinal,
+    history,
+  });
+
+  return finalQuerySelectorIndex;
+}
+
 interface DomElement {
   tagName: string;
   textContent: string;
@@ -122,16 +150,12 @@ interface DomElement {
 function elementToString(el: DomElement) {
   const MAX_TEXT_LEN = 2_048;
 
-  const rect = el.boundingRect;
-
   return `Element: ${el.tagName.toLowerCase()}
     Text: ${el.textContent.slice(0, MAX_TEXT_LEN)}
     Role: ${el.role}
     Aria Label: ${el.ariaLabel}
     Aria Role: ${el.ariaRole}
-    Parent: ${el.parentInfo.textContent});
-    Bounding Rectangle: [x: ${rect.x}, y: ${rect.y}, width: ${rect.width}, height: ${rect.height}]
+    Parent: ${el.parentInfo.textContent.replace(" ", "")}
     Index: ${el.index}
-    Query Selector: ${el.querySelector}
     `;
 }
