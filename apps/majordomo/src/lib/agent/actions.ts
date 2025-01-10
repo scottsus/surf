@@ -152,12 +152,16 @@ export async function takeInputAction({
     }
 
     const inputElement = element as HTMLElement;
-    if (inputElement instanceof HTMLInputElement) {
+    if (
+      inputElement instanceof HTMLInputElement ||
+      inputElement instanceof HTMLTextAreaElement
+    ) {
       inputElement.value = content;
     } else if (inputElement.isContentEditable) {
       inputElement.textContent = content;
     }
     if (action.type === "input" && action.withSubmit) {
+      await sleep(200);
       inputElement.closest("form")?.submit();
     }
   };
