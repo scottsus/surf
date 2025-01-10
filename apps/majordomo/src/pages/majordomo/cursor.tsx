@@ -65,7 +65,11 @@ export function Cursor() {
           zIndex: 2147483647,
         }}
       >
-        <RiveComponent style={{ width: "8rem", height: "8rem" }} />
+        <RiveComponent
+          // @TODO: not working with some websites like LinkedIn
+          id="rivecursor"
+          style={{ width: "8rem", height: "8rem" }}
+        />
       </div>
       <div
         className="fixed flex items-center rounded-md"

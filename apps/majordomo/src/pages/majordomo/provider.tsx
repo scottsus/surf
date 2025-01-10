@@ -1,6 +1,6 @@
 import { useRive, useStateMachineInput } from "@rive-app/react-canvas";
 import { runUntilCompletion } from "@src/lib/agent";
-import { HistoryManager } from "@src/lib/agent/history-manager";
+import { summarizeAction } from "@src/lib/ai/api/summarize-action";
 import { ActionMetadata } from "@src/lib/interface/action-metadata";
 import { ExtensionState } from "@src/lib/interface/state";
 import { ThinkingState } from "@src/lib/interface/thinking-state";
@@ -13,8 +13,10 @@ export type CursorCoordinate = {
 };
 
 type MajordomoContextType = {
-  extensionState: ExtensionState;
+  loadState: () => Promise<ExtensionState | null>;
   clearState: () => Promise<void>;
+
+  stateTrigger: boolean;
 
   thinkingState: ThinkingState;
   setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
@@ -22,13 +24,10 @@ type MajordomoContextType = {
   setUserIntent: (intent: string) => Promise<void>;
   updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
 
-  historyManager: HistoryManager;
-
   RiveComponent: (props: React.ComponentProps<"canvas">) => JSX.Element;
 
   cursorPosition: CursorCoordinate;
   setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
-
   cursorPositionEstimate: CursorCoordinate;
   setCursorPositionEstimate: React.Dispatch<
     React.SetStateAction<CursorCoordinate>
@@ -40,20 +39,11 @@ const MajordomoContext = createContext<MajordomoContextType | undefined>(
 );
 
 export function MajordomoProvider({ children }: { children: React.ReactNode }) {
-  // State
-  const initialExtensionState: ExtensionState = {
-    userIntent: "",
-    history: [],
-    cursorPosition: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
-    abort: false,
-  };
-  const [extensionState, setExtensionState] = useState<ExtensionState>(
-    initialExtensionState,
-  );
+  const [stateTrigger, setStateTrigger] = useState(false);
+
   const [thinkingState, setThinkingState] = useState<ThinkingState>({
     type: "idle",
   });
-  const historyManager = HistoryManager.getInstance({ appendHistory });
 
   // Cursor
   const { rive, RiveComponent } = useRive({
@@ -77,26 +67,18 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
       y: 0,
     });
 
-  /**
-   * sync on purpose as part of useEffect
-   */
-  function loadState() {
-    chrome.runtime.sendMessage(
-      { action: "load_state" },
-      (ext: ExtensionState | null) => {
-        if (ext) {
-          setExtensionState(ext);
-          setCursorPosition(ext.cursorPosition);
-          historyManager.loadHistory(ext.history);
-        }
-      },
-    );
+  async function loadState(): Promise<ExtensionState | null> {
+    return await new Promise<ExtensionState | null>((resolve) => {
+      chrome.runtime.sendMessage(
+        { action: "load_state" },
+        (ext: ExtensionState | null) => {
+          resolve(ext);
+        },
+      );
+    });
   }
 
-  /**
-   * async on purpose as part of runUntilCompletion
-   */
-  async function saveState(extensionState: ExtensionState) {
+  async function saveState(extensionState: Partial<ExtensionState>) {
     return await new Promise<void>((resolve) => {
       chrome.runtime.sendMessage(
         { action: "save_state", state: extensionState },
@@ -105,63 +87,61 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
     });
   }
 
-  /**
-   * async on purpose as part of runUntilCompletion
-   */
   async function clearState() {
-    setExtensionState(initialExtensionState);
+    setStateTrigger((t) => !t);
     return await new Promise<void>((resolve) => {
       chrome.runtime.sendMessage({ action: "clear_state" }, resolve);
     });
   }
 
   async function setUserIntent(intent: string) {
-    const newState: ExtensionState = {
-      ...extensionState,
-      userIntent: intent,
-    };
-    setExtensionState(newState);
-    await saveState(newState);
+    await saveState({ userIntent: intent });
+    setStateTrigger((t) => !t);
   }
 
-  /**
-   * because we're passing this into history manager, the `extensionState`
-   * is inherently frozen, which is why we need this workaround.
-   */
+  async function getLatestAction() {
+    const existingState = await loadState();
+    if (!existingState) {
+      throw new Error("getLatestAction: existing state is null");
+    }
+    const { history } = existingState;
+    if (history.length === 0) {
+      return null;
+    }
+    return history[history.length - 1];
+  }
+
   async function appendHistory(newAction: ActionMetadata) {
-    const newState = await new Promise<ExtensionState>((resolve) => {
-      setExtensionState((currentState) => {
-        const newState = {
-          ...currentState,
-          history: [...currentState.history, newAction],
-        };
-        resolve(newState);
-        return newState;
-      });
-    });
-    await saveState(newState);
+    const existingState = await loadState();
+    if (!existingState) {
+      throw new Error("appendHistory: existing state is null");
+    }
+    await saveState({ history: [...existingState.history, newAction] });
   }
 
-  async function updateCursorPosition({ x, y }: CursorCoordinate) {
-    const newState: ExtensionState = {
-      ...extensionState,
-      cursorPosition: { x, y },
-    };
-    setExtensionState(newState);
-    await saveState(newState);
+  async function evaluateHistory(success: boolean) {
+    const existingState = await loadState();
+    if (!existingState) {
+      throw new Error("evaluateHistory: existing state is null");
+    }
+    const { history } = existingState;
+    if (history.length === 0) {
+      return;
+    }
+    const latestAction = history[history.length - 1];
+    if (!latestAction) {
+      return;
+    }
+    latestAction.summary = await summarizeAction({
+      action: latestAction.action,
+      success,
+    });
+    const newHistory = [...history.slice(0, history.length - 1), latestAction];
+    await saveState({ history: newHistory });
   }
 
-  /**
-   * the `extensionState` we're passing into `runUntilCompletion` is frozen,
-   * so we need this workaround
-   */
-  async function checkAbortSignal() {
-    return await new Promise<boolean>((resolve) => {
-      setExtensionState((currentState) => {
-        resolve(currentState.abort);
-        return currentState;
-      });
-    });
+  async function updateCursorPosition(newCoordinates: CursorCoordinate) {
+    await saveState({ cursorPosition: newCoordinates });
   }
 
   async function abort() {
@@ -171,25 +151,38 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    const { userIntent } = extensionState;
-    if (!userIntent) {
-      return;
-    }
-    console.log("Objective:", userIntent);
+    loadState().then((ext) => {
+      if (!ext) {
+        throw new Error("provider.useEffect: extensionState is null");
+      }
 
-    runUntilCompletion({
-      extensionState,
-      historyManager,
-      opts: {
-        clearState,
-        setThinkingState,
-        clickAction,
-        updateCursorPosition,
-        setCursorPosition,
-        setCursorPositionEstimate,
-      },
+      const { userIntent } = ext;
+      if (!userIntent) {
+        return;
+      }
+      console.log("Surf objective:", userIntent);
+
+      runUntilCompletion({
+        stateManager: {
+          loadState,
+          saveState,
+          clearState,
+        },
+        historyManager: {
+          getLatestAction,
+          appendHistory,
+          evaluateHistory,
+        },
+        cursorOpts: {
+          setThinkingState,
+          clickAction,
+          updateCursorPosition,
+          setCursorPosition,
+          setCursorPositionEstimate,
+        },
+      });
     });
-  }, [extensionState.userIntent]);
+  }, [stateTrigger]);
 
   useEffect(() => {
     loadState();
@@ -200,7 +193,6 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
       if (e.ctrlKey && e.key === "c") {
         e.preventDefault();
         toast.info("❌ cancelling current task...");
-        await clearState();
         await abort();
       }
     };
@@ -211,12 +203,12 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
   return (
     <MajordomoContext.Provider
       value={{
-        extensionState,
+        loadState,
         clearState,
+        stateTrigger,
         thinkingState,
         setThinkingState,
         setUserIntent,
-        historyManager,
         RiveComponent,
         updateCursorPosition,
         cursorPosition,

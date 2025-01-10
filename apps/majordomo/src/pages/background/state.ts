@@ -1,25 +1,34 @@
 import { ExtensionState } from "@src/lib/interface/state";
 
-const extensionStateKey = "extension_state";
+let instance: ExtensionStateManager | null = null;
 
-export async function loadState(): Promise<ExtensionState | null> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get([extensionStateKey], (result) => {
-      resolve(result[extensionStateKey] as ExtensionState | null);
-    });
-  });
-}
+export class ExtensionStateManager {
+  private initialState: ExtensionState = {
+    userIntent: "",
+    history: [],
+    cursorPosition: { x: 0, y: 0 },
+  };
+  private state = this.initialState;
 
-export async function saveState(extensionState: ExtensionState) {
-  return new Promise((resolve) => {
-    chrome.storage.local.set({ [extensionStateKey]: extensionState }, () =>
-      resolve(undefined),
-    );
-  });
-}
+  private constructor() {}
 
-export async function clearState() {
-  return new Promise((resolve) => {
-    chrome.storage.local.clear(() => resolve(undefined));
-  });
+  public static getInstance(): ExtensionStateManager {
+    if (!instance) {
+      instance = new ExtensionStateManager();
+    }
+    return instance;
+  }
+
+  public loadState(): ExtensionState {
+    return this.state;
+  }
+
+  public updateState(newState: Partial<ExtensionState>) {
+    this.state = { ...this.state, ...newState };
+    console.log("newState:", this.state);
+  }
+
+  public clearState() {
+    this.state = this.initialState;
+  }
 }

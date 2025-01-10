@@ -4,14 +4,11 @@ import { toast } from "sonner";
 
 import { chooseAction } from "../ai/api/choose-action";
 import { chooseQuerySelector } from "../ai/api/choose-query-selector";
-import { estimateElementLocation } from "../ai/api/estimate-element-location";
-import { summarizeAction } from "../ai/api/summarize-action";
 import { getRelevantElements } from "../dom/get-elements";
 import { Action } from "../interface/action";
 import { ActionMetadata } from "../interface/action-metadata";
 import { ThinkingState } from "../interface/thinking-state";
 import { sleep } from "../utils";
-import { HistoryManager } from "./history-manager";
 
 export async function generateAction({
   screenshot,
@@ -61,40 +58,27 @@ export async function takeScreenshot() {
 /**
  * only available via background script
  */
-export async function takeNavigateAction({
-  url,
-  action,
-  historyManager,
-}: {
-  url: string;
-  action: Action;
-  historyManager: HistoryManager;
-}) {
-  await historyManager.updateHistory({
-    action,
-    querySelector: "",
-    summary: await summarizeAction({ action, success: true }),
-  });
+export async function takeNavigateAction({ url }: { url: string }) {
+  await sleep(500); // show navigation status
+  const runnable = async () => {
+    await new Promise<void>((resolve) => {
+      chrome.runtime.sendMessage({ action: "navigate", url }, resolve);
+    });
+  };
 
-  await sleep(1000); // show the navigation status
-  return await new Promise<void>((resolve) => {
-    chrome.runtime.sendMessage({ action: "navigate", url }, resolve);
-  });
+  return { runnable };
 }
 
 export async function takeClickAction({
-  screenshot,
   agentIntent,
-  action,
-  historyManager,
-  opts,
+  history,
+  setThinkingState,
+  cursorOpts,
 }: {
-  screenshot: string;
   agentIntent: string;
-  action: Action;
-  historyManager: HistoryManager;
-  opts: {
-    setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
+  history: ActionMetadata[];
+  setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
+  cursorOpts: {
     clickAction: StateMachineInput | null;
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
     setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
@@ -102,45 +86,42 @@ export async function takeClickAction({
       React.SetStateAction<CursorCoordinate>
     >;
   };
-}): Promise<{ querySelector: string }> {
+}): Promise<{
+  querySelector: string;
+  runnable?: (() => Promise<any>) | undefined;
+}> {
   const querySelectorResponse = await getQuerySelector({
-    screenshot,
     agentIntent,
-    history: historyManager.getLocalHistory(),
-    opts,
+    history,
+    cursorOpts,
   });
   if (!querySelectorResponse) {
-    toast.error("unable to get particular query selector");
     return { querySelector: "error" };
   }
 
-  opts.setThinkingState({ type: "clicking_button" });
-  const { ok } = await moveToElement(querySelectorResponse);
+  setThinkingState({ type: "clicking_button" });
 
-  await historyManager.updateHistory({
-    action,
-    querySelector: querySelectorResponse.querySelector,
-    summary: await summarizeAction({ action, success: ok }),
-  });
+  const runnable = async () => {
+    await moveToElement(querySelectorResponse);
+  };
 
-  return { querySelector: querySelectorResponse.querySelector };
+  return { querySelector: querySelectorResponse.querySelector, runnable };
 }
 
 export async function takeInputAction({
-  screenshot,
   inputDescription,
   content,
   action,
-  historyManager,
-  opts,
+  history,
+  setThinkingState,
+  cursorOpts,
 }: {
-  screenshot: string;
   inputDescription: string;
   content: string;
   action: Action;
-  historyManager: HistoryManager;
-  opts: {
-    setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
+  history: ActionMetadata[];
+  setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
+  cursorOpts: {
     clickAction: StateMachineInput | null;
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
     setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
@@ -148,93 +129,79 @@ export async function takeInputAction({
       React.SetStateAction<CursorCoordinate>
     >;
   };
-}): Promise<{ querySelector: string }> {
+}): Promise<{
+  querySelector: string;
+  runnable?: (() => Promise<void>) | undefined;
+}> {
   const querySelectorResponse = await getQuerySelector({
-    screenshot,
     agentIntent: inputDescription,
-    history: historyManager.getLocalHistory(),
-    opts,
+    history,
+    cursorOpts,
   });
   if (!querySelectorResponse) {
     toast.error("unable to get particular query selector");
     return { querySelector: "error" };
   }
 
-  opts.setThinkingState({ type: "clicking_button" });
-  const { element } = await moveToElement(querySelectorResponse);
-  if (!element) {
-    toast.error("unable to move to element");
-    return { querySelector: "error" };
-  }
-  await sleep(1000);
+  setThinkingState({ type: "clicking_button" });
 
-  const inputElement = element as HTMLInputElement;
-  inputElement.value = content;
-  inputElement.closest("form")?.submit();
+  const runnable = async () => {
+    const { element } = await moveToElement(querySelectorResponse);
+    if (!element) {
+      toast.error("unable to move to element");
+    }
 
-  await historyManager.updateHistory({
-    action,
-    querySelector: querySelectorResponse.querySelector,
-    summary: await summarizeAction({ action, success: true }),
-  });
+    const inputElement = element as HTMLElement;
+    if (inputElement instanceof HTMLInputElement) {
+      inputElement.value = content;
+    } else if (inputElement.isContentEditable) {
+      inputElement.textContent = content;
+    }
+    if (action.type === "input" && action.withSubmit) {
+      inputElement.closest("form")?.submit();
+    }
+  };
 
-  return { querySelector: querySelectorResponse.querySelector };
+  return { querySelector: querySelectorResponse.querySelector, runnable };
 }
 
 export async function takeRefreshAction() {
-  const res = await new Promise<void>((resolve) => {
-    chrome.runtime.sendMessage({ action: "refresh" }, resolve);
-  });
+  const runnable = async () => {
+    await new Promise<void>((resolve) => {
+      chrome.runtime.sendMessage({ action: "refresh" }, resolve);
+    });
+  };
 
-  return res;
+  return { runnable };
 }
 
 export async function takeBackAction() {
-  const res = await new Promise<void>((resolve) => {
-    chrome.runtime.sendMessage({ action: "back" }, resolve);
-  });
+  const runnable = async () => {
+    await new Promise<void>((resolve) => {
+      chrome.runtime.sendMessage({ action: "back" }, resolve);
+    });
+  };
 
-  return res;
+  return { runnable };
 }
 
 async function getQuerySelector({
-  screenshot,
   agentIntent,
   history,
-  opts,
+  cursorOpts,
 }: {
-  screenshot: string;
   agentIntent: string;
   history: ActionMetadata[];
-  opts: {
-    updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
+  cursorOpts: {
     clickAction: StateMachineInput | null;
+    updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
     setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
     setCursorPositionEstimate: React.Dispatch<
       React.SetStateAction<CursorCoordinate>
     >;
   };
 }) {
-  const elementPosition = await estimateElementLocation({
-    userIntent: agentIntent,
-    screenshot,
-    dimensions: { width: window.innerWidth, height: window.innerHeight },
-  });
-  if (!elementPosition || !elementPosition.ok) {
-    toast.error("unable to estimate element location on screen");
-    return;
-  }
-  const { xEstimate, yEstimate } = elementPosition;
-
-  opts.setCursorPositionEstimate({ x: xEstimate, y: yEstimate });
-
-  const relevantElements = getRelevantElements({
-    opts: {
-      xEstimate,
-      yEstimate,
-    },
-  });
-
+  const relevantElements = getRelevantElements();
   const querySelectorResponse = await chooseQuerySelector({
     userIntent: agentIntent,
     relevantElements,
@@ -252,6 +219,7 @@ async function getQuerySelector({
     toast.error("unable to find target element");
     return;
   }
+  console.log("target:", targetElement);
 
   const { querySelector, boundingRect } = targetElement;
 
@@ -259,20 +227,16 @@ async function getQuerySelector({
     querySelector,
     targetX: boundingRect.x,
     targetY: boundingRect.y,
-    opts,
+    cursorOpts,
   };
 }
 
 async function moveToElement({
   querySelector,
-  targetX,
-  targetY,
-  opts,
+  cursorOpts,
 }: {
   querySelector: string;
-  targetX: number;
-  targetY: number;
-  opts: {
+  cursorOpts: {
     clickAction: StateMachineInput | null;
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
     setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
@@ -282,13 +246,9 @@ async function moveToElement({
   };
 }): Promise<{ ok: boolean; element: Element | null }> {
   try {
-    const target = getClosestElementFromEstimate({
-      querySelector,
-      targetX,
-      targetY,
-    });
+    const target = document.querySelector(querySelector);
     if (!target) {
-      toast.error("no elements found within the specified radius");
+      toast.error("no element found");
       return { ok: false, element: null };
     }
 
@@ -301,15 +261,15 @@ async function moveToElement({
     let intervalId: NodeJS.Timeout;
     await new Promise<void>((resolve) => {
       const intervalId = setInterval(async () => {
-        opts.setCursorPosition((prev) => {
+        cursorOpts.setCursorPosition((prev) => {
           const newX = prev.x + (centerX - prev.x) * 0.3;
           const newY = prev.y + (centerY - prev.y) * 0.3;
 
           if (Math.abs(newX - centerX) < 1 && Math.abs(newY - centerY) < 1) {
             clearInterval(intervalId);
 
-            // ok to not await
-            opts.updateCursorPosition(newCoords);
+            // @TODO: update this or remove
+            // cursorOpts.updateCursorPosition(newCoords);
 
             const element = document.elementFromPoint(
               centerX,
@@ -318,7 +278,7 @@ async function moveToElement({
 
             timeoutId = setTimeout(() => {
               const events = ["mousedown", "mouseup", "click"];
-              opts.clickAction && opts.clickAction.fire();
+              cursorOpts.clickAction && cursorOpts.clickAction.fire();
               events.forEach((eventType) => {
                 const event = new MouseEvent(eventType, {
                   bubbles: true,
@@ -340,8 +300,6 @@ async function moveToElement({
       }, 16);
     });
 
-    await sleep(2000); // some buttons take time
-
     const cleanup = () => {
       clearInterval(intervalId);
       if (timeoutId) clearTimeout(timeoutId);
@@ -355,69 +313,9 @@ async function moveToElement({
   }
 }
 
-function getClosestElementFromEstimate({
-  querySelector,
-  targetX,
-  targetY,
-}: {
-  querySelector: string;
-  targetX: number;
-  targetY: number;
-}) {
-  const targets = Array.from(document.querySelectorAll(querySelector));
-
-  const target: Element | null = targets.reduce((closest, current) => {
-    const rect = current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const distance = Math.sqrt(
-      Math.pow(centerX - targetX, 2) + Math.pow(centerY - targetY, 2),
-    );
-    if (!closest) {
-      return current;
-    }
-
-    const closestRect = closest.getBoundingClientRect();
-    const closestCenterX = closestRect.left + closestRect.width / 2;
-    const closestCenterY = closestRect.top + closestRect.height / 2;
-    const closestDistance = Math.sqrt(
-      Math.pow(closestCenterX - targetX, 2) +
-        Math.pow(closestCenterY - targetY, 2),
-    );
-
-    return distance < closestDistance ? current : closest;
-  });
-
-  return target;
-}
-
 export function printHistory(history: ActionMetadata[]) {
   console.log("---------\n");
   for (const h of history) {
     console.log(`${h.summary}, ${h.querySelector}`);
   }
 }
-
-/**
- * 1. what is the success criteria?
- *      loop until success criteria
- * 2. choose an action
- *      take screenshot
- *      decide on an action
- * 3. take action
- *      take screenshot
- *      estimate location
- *      get closest elements
- *      choose query selector
- *      move to element
- */
-
-/**
- * states
- *
- * 1. thinking of success criteria
- * 2. deciding on action
- * 3. action: click "search" button
- * 4. choosing which button to press
- * 5. require user assistance
- */

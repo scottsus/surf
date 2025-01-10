@@ -6,5 +6,4 @@ export type ExtensionState = {
   userIntent: string;
   history: ActionMetadata[];
   cursorPosition: CursorCoordinate;
-  abort: boolean;
 };

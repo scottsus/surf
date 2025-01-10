@@ -23,10 +23,6 @@ export async function POST(req: Request) {
     The image dimensions are: [${dimensions.width}x${dimensions.height}]`;
 
     const { object } = await generateObject({
-      headers: {
-        // @TODO needed to bypass CORS
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
       model: defaultProvider,
       system: `You are an image expert, and you're one of the best in the world at estimating pixel values.
       

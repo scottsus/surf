@@ -7,6 +7,7 @@ export interface DomElement {
   parentInfo: {
     tagName: string;
     className: string;
+    textContent: string;
   };
   boundingRect: DOMRect;
   index: number;

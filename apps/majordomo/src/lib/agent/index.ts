@@ -2,6 +2,8 @@ import { StateMachineInput } from "@rive-app/react-canvas";
 import { CursorCoordinate } from "@src/pages/majordomo/provider";
 import { toast } from "sonner";
 
+import { summarizeAction } from "../ai/api/summarize-action";
+import { ActionMetadata, ActionState } from "../interface/action-metadata";
 import { ExtensionState } from "../interface/state";
 import { ThinkingState } from "../interface/thinking-state";
 import { sleep } from "../utils";
@@ -14,19 +16,25 @@ import {
   takeRefreshAction,
   takeScreenshot,
 } from "./actions";
-import { HistoryManager } from "./history-manager";
 
 const MAX_RUN_STEPS = 10;
 
 export async function runUntilCompletion({
-  extensionState,
+  stateManager,
   historyManager,
-  opts,
+  cursorOpts,
 }: {
-  extensionState: ExtensionState;
-  historyManager: HistoryManager;
-  opts: {
+  stateManager: {
+    loadState: () => Promise<ExtensionState | null>;
+    saveState: (state: Partial<ExtensionState>) => Promise<void>;
     clearState: () => Promise<void>;
+  };
+  historyManager: {
+    getLatestAction: () => Promise<ActionMetadata | null | undefined>;
+    appendHistory: (newAction: ActionMetadata) => Promise<void | undefined>;
+    evaluateHistory: (success: boolean) => Promise<void | undefined>;
+  };
+  cursorOpts: {
     setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
     clickAction: StateMachineInput | null;
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
@@ -36,23 +44,31 @@ export async function runUntilCompletion({
     >;
   };
 }) {
-  const { userIntent } = extensionState;
+  const { loadState, clearState } = stateManager;
+  const state = await loadState();
+  if (!state) {
+    toast.info("state is null");
+    return;
+  }
+  const { userIntent, history: unevaluatedHistory } = state;
+  const { getLatestAction, appendHistory, evaluateHistory } = historyManager;
   const {
-    clearState,
     setThinkingState,
     clickAction,
     updateCursorPosition,
     setCursorPosition,
     setCursorPositionEstimate,
-  } = opts;
+  } = cursorOpts;
 
   try {
     let i = 0;
     let runInProgress = true;
+    let runnable: (() => Promise<void>) | undefined;
+
     while (i < MAX_RUN_STEPS && runInProgress) {
       i += 1;
       setThinkingState({ type: "awaiting_ui_changes" });
-      await sleep(1500);
+      await sleep(500);
 
       const { ok, screenshot } = await takeScreenshot();
       if (!ok) {
@@ -65,70 +81,87 @@ export async function runUntilCompletion({
         break;
       }
 
+      const latestAction = await getLatestAction();
+      if (latestAction) {
+        // evaluate the unevaluatedHistory
+        const success = true;
+        await evaluateHistory(success);
+      }
+
+      const updatedState = await loadState();
+      if (!updatedState) {
+        throw new Error(
+          "runUntilCompletion: unable to load state after updating it",
+        );
+      }
+      const { history } = updatedState;
+      console.log("history:", history);
+
       setThinkingState({ type: "deciding_action" });
       const { action } = await generateAction({
         screenshot,
         userIntent,
-        history: historyManager.getLocalHistory(),
+        history,
       });
       if (!action) {
         toast.error("no action was chosen");
         continue;
       }
+      console.log("action:", action);
 
       setThinkingState({ type: "action", action });
       switch (action.type) {
         case "navigate":
-          await takeNavigateAction({
+          const navigateActionResponse = await takeNavigateAction({
             url: action.url,
-            action,
-            historyManager,
           });
+          runnable = navigateActionResponse.runnable;
           break;
 
         case "click":
-          await takeClickAction({
-            screenshot,
-            agentIntent: action.buttonDescription,
-            action,
-            historyManager,
-            opts: {
-              setThinkingState,
+          const clickActionResponse = await takeClickAction({
+            agentIntent: `aria-label: ${action.ariaLabel}, description: ${action.targetDescription}`,
+            history,
+            setThinkingState,
+            cursorOpts: {
               clickAction,
               updateCursorPosition,
               setCursorPosition,
               setCursorPositionEstimate,
             },
           });
+          runnable = clickActionResponse.runnable;
           break;
 
         case "input":
-          await takeInputAction({
-            screenshot,
-            inputDescription: action.inputDescription,
+          const inputActionResponse = await takeInputAction({
+            inputDescription: `aria-label: ${action.ariaLabel}, description: ${action.targetDescription}`,
             content: action.content,
             action,
-            historyManager,
-            opts: {
-              setThinkingState,
+            history,
+            setThinkingState,
+            cursorOpts: {
               clickAction,
               updateCursorPosition,
               setCursorPosition,
               setCursorPositionEstimate,
             },
           });
+          runnable = inputActionResponse.runnable;
           break;
 
         case "refresh":
-          takeRefreshAction();
+          const refreshActionResponse = await takeRefreshAction();
+          runnable = refreshActionResponse.runnable;
           break;
 
         case "back":
-          takeBackAction();
+          const backActionResponse = await takeBackAction();
+          runnable = backActionResponse.runnable;
           break;
 
         case "done":
-          // @TODO insert some done animation
+          runnable = undefined;
           await clearState();
           setThinkingState({ type: "done" });
           runInProgress = false;
@@ -137,6 +170,21 @@ export async function runUntilCompletion({
         default:
           toast.error("unknown action");
           break;
+      }
+
+      /**
+       * we do this because a "runnable" has the chance to navigate out of the page
+       * resetting the execution context. if there is any cleanup to be done, it should
+       * be right before this action.
+       */
+      if (runnable) {
+        await appendHistory({
+          action,
+          querySelector: "",
+          summary: await summarizeAction({ action }),
+          state: ActionState.IN_PROGRESS,
+        });
+        await runnable();
       }
     } // endwhile
 
