@@ -12,6 +12,19 @@ export type Action =
   | { type: "back" }
   | { type: "done" };
 
+export type Action_v2 =
+  | { type: "navigate"; url: string }
+  | { type: "click"; idx: number }
+  | {
+      type: "input";
+      idx: number;
+      content: string;
+      withSubmit: boolean;
+    }
+  | { type: "refresh" }
+  | { type: "back" }
+  | { type: "done" };
+
 export function stringify(action: Action) {
   switch (action.type) {
     case "navigate":

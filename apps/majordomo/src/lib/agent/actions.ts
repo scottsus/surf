@@ -1,29 +1,30 @@
+import { MinifiedElement } from "@repo/types/element";
 import { StateMachineInput } from "@rive-app/react-canvas";
 import { CursorCoordinate } from "@src/pages/majordomo/provider";
 import { toast } from "sonner";
 
-import { chooseAction } from "../ai/api/choose-action";
+import { chooseActionAndQuerySelector } from "../ai/api/choose-action-and-query-selector";
 import { chooseQuerySelector } from "../ai/api/choose-query-selector";
 import { getRelevantElements } from "../dom/get-elements";
-import { Action } from "../interface/action";
+import { Action, Action_v2 } from "../interface/action";
 import { ActionMetadata } from "../interface/action-metadata";
 import { ThinkingState } from "../interface/thinking-state";
 import { sleep } from "../utils";
 
 export async function generateAction({
-  screenshot,
   userIntent,
+  minifiedElements,
   history,
 }: {
-  screenshot: string;
   userIntent: string;
+  minifiedElements: MinifiedElement[];
   history: ActionMetadata[];
 }) {
-  const action = (await chooseAction({
+  const action = (await chooseActionAndQuerySelector({
     userIntent,
-    screenshot,
+    minifiedElements,
     history,
-  })) as Action | undefined;
+  })) as Action_v2 | undefined;
   if (!action) {
     throw new Error("generateAction: undefined");
   }
@@ -70,14 +71,10 @@ export async function takeNavigateAction({ url }: { url: string }) {
 }
 
 export async function takeClickAction({
-  agentIntent,
-  history,
-  setThinkingState,
+  querySelector,
   cursorOpts,
 }: {
-  agentIntent: string;
-  history: ActionMetadata[];
-  setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
+  querySelector: string;
   cursorOpts: {
     clickAction: StateMachineInput | null;
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
@@ -87,40 +84,24 @@ export async function takeClickAction({
     >;
   };
 }): Promise<{
-  querySelector: string;
   runnable?: (() => Promise<any>) | undefined;
 }> {
-  const querySelectorResponse = await getQuerySelector({
-    agentIntent,
-    history,
-    cursorOpts,
-  });
-  if (!querySelectorResponse) {
-    return { querySelector: "error" };
-  }
-
-  setThinkingState({ type: "clicking_button" });
-
   const runnable = async () => {
-    await moveToElement(querySelectorResponse);
+    await moveToElement({ querySelector, cursorOpts });
   };
 
-  return { querySelector: querySelectorResponse.querySelector, runnable };
+  return { runnable };
 }
 
 export async function takeInputAction({
-  inputDescription,
+  querySelector,
   content,
-  action,
-  history,
-  setThinkingState,
+  withSubmit,
   cursorOpts,
 }: {
-  inputDescription: string;
+  querySelector: string;
   content: string;
-  action: Action;
-  history: ActionMetadata[];
-  setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
+  withSubmit: boolean;
   cursorOpts: {
     clickAction: StateMachineInput | null;
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
@@ -130,23 +111,10 @@ export async function takeInputAction({
     >;
   };
 }): Promise<{
-  querySelector: string;
   runnable?: (() => Promise<void>) | undefined;
 }> {
-  const querySelectorResponse = await getQuerySelector({
-    agentIntent: inputDescription,
-    history,
-    cursorOpts,
-  });
-  if (!querySelectorResponse) {
-    toast.error("unable to get particular query selector");
-    return { querySelector: "error" };
-  }
-
-  setThinkingState({ type: "clicking_button" });
-
   const runnable = async () => {
-    const { element } = await moveToElement(querySelectorResponse);
+    const { element } = await moveToElement({ querySelector, cursorOpts });
     if (!element) {
       toast.error("unable to move to element");
     }
@@ -160,13 +128,13 @@ export async function takeInputAction({
     } else if (inputElement.isContentEditable) {
       inputElement.textContent = content;
     }
-    if (action.type === "input" && action.withSubmit) {
+    if (withSubmit) {
       await sleep(200);
       inputElement.closest("form")?.submit();
     }
   };
 
-  return { querySelector: querySelectorResponse.querySelector, runnable };
+  return { runnable };
 }
 
 export async function takeRefreshAction() {

@@ -173,8 +173,8 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
           appendHistory,
           evaluateHistory,
         },
+        setThinkingState,
         cursorOpts: {
-          setThinkingState,
           clickAction,
           updateCursorPosition,
           setCursorPosition,
