@@ -8,7 +8,6 @@ import { chooseQuerySelector } from "../ai/api/choose-query-selector";
 import { getRelevantElements } from "../dom/get-elements";
 import { Action, Action_v2 } from "../interface/action";
 import { ActionMetadata } from "../interface/action-metadata";
-import { ThinkingState } from "../interface/thinking-state";
 import { sleep } from "../utils";
 
 export async function generateAction({
@@ -20,16 +19,13 @@ export async function generateAction({
   minifiedElements: MinifiedElement[];
   history: ActionMetadata[];
 }) {
-  const action = (await chooseActionAndQuerySelector({
+  const actions = await chooseActionAndQuerySelector({
     userIntent,
     minifiedElements,
     history,
-  })) as Action_v2 | undefined;
-  if (!action) {
-    throw new Error("generateAction: undefined");
-  }
+  });
 
-  return { action };
+  return { actions };
 }
 
 /**
@@ -243,11 +239,6 @@ async function moveToElement({
             // @TODO: update this or remove
             // cursorOpts.updateCursorPosition(newCoords);
 
-            const element = document.elementFromPoint(
-              centerX,
-              centerY,
-            ) as HTMLElement;
-
             timeoutId = setTimeout(() => {
               const events = ["mousedown", "mouseup", "click"];
               cursorOpts.clickAction && cursorOpts.clickAction.fire();
@@ -259,7 +250,7 @@ async function moveToElement({
                   clientX: centerX,
                   clientY: centerY,
                 });
-                element.dispatchEvent(event);
+                target.dispatchEvent(event);
               });
 
               resolve(); // this ends the await

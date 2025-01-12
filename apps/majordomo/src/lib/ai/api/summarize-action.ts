@@ -17,7 +17,7 @@ export async function summarizeAction({
     case "navigate":
       return `${successStatus} navigate to ${action.url}`;
     case "click":
-      return `${successStatus} click`;
+      return `${successStatus} click ${action.description}`;
     case "input":
       return `${successStatus} input "${action.content}"`;
     case "refresh":

@@ -6,11 +6,10 @@ export function minifyDom(document: HTMLElement): MinifiedElement[] {
   const elements = document.querySelectorAll("*");
   elements.forEach((el, idx) => {
     const role = el.getAttribute("role");
+    const type = el.getAttribute("type");
+    if (role === "style" || role === "script" || role === "main") return;
     if (
-      !role ||
-      role === "style" ||
-      role === "script" ||
-      role === "main" ||
+      (!role && !type) ||
       role === "grid" ||
       role === "table" ||
       role === "contentinfo" ||
@@ -20,8 +19,12 @@ export function minifyDom(document: HTMLElement): MinifiedElement[] {
       role === "tabpanel"
     )
       return;
+    const rect = el.getBoundingClientRect();
 
-    const tag = role;
+    if (rect.x === 0 && rect.y === 0 && rect.height === 0 && rect.width === 0)
+      return;
+
+    const tag = (role || type) as string;
     let topic =
       el.getAttribute("aria-label") ||
       (el.textContent?.replace(/\s/g, "") as string);
@@ -72,15 +75,17 @@ function getQuerySelector(el: Element): string {
     }
 
     if (current.className) {
-      const cleanedClasses = current.className
-        .split(/[\s\n\r]+/) // split on whitespace
-        .filter((c) => c)
-        .map((className) => CSS.escape(className))
-        .join(".");
+      try {
+        const cleanedClasses = current.className
+          .split(/[\s\n\r]+/) // split on whitespace
+          .filter((c) => c)
+          .map((className) => CSS.escape(className))
+          .join(".");
 
-      if (cleanedClasses) {
-        selector += `.${cleanedClasses}`;
-      }
+        if (cleanedClasses) {
+          selector += `.${cleanedClasses}`;
+        }
+      } catch (err) {}
     }
 
     path.unshift(selector);

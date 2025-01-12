@@ -9,5 +9,5 @@ export type MinifiedElement = {
 
 export function minifiedElementToString(element: MinifiedElement) {
   const { tag, topic, idx } = element;
-  return `<${tag} topic=${topic} idx=${idx} />`;
+  return `<${tag} topic="${topic}" idx=${idx} />`;
 }
