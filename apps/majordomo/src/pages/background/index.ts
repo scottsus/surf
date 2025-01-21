@@ -137,4 +137,26 @@ chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
   return true;
 });
 
+chrome.runtime.onMessage.addListener(async (message, _, sendResponse) => {
+  if (message.action !== "screencast_in_background") return;
+
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab?.id) {
+    console.error("tabId undefined");
+    return;
+  }
+
+  const streamId = await new Promise<string>((resolve) => {
+    chrome.tabCapture.getMediaStreamId(
+      {
+        targetTabId: tab.id,
+        consumerTabId: tab.id,
+      },
+      resolve,
+    );
+  });
+
+  sendResponse({ data: streamId });
+});
+
 console.log("listeners initialized");
