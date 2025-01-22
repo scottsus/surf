@@ -5,12 +5,12 @@ import { useMajordomo } from "./provider";
 const USE_ANIMATE_PULSE_SHADOW = false;
 
 export function Overlay({ children }: { children: React.ReactNode }) {
-  const { stateTrigger, loadState } = useMajordomo();
+  const { currentTabIsWorking, loadState, stateTrigger } = useMajordomo();
   const [isRunning, setIsRunning] = useState(false);
 
   useEffect(() => {
-    loadState().then((ext) => {
-      if (ext?.userIntent) {
+    loadState().then(async (ext) => {
+      if ((await currentTabIsWorking()) && ext?.userIntent) {
         setIsRunning(true);
       } else {
         setIsRunning(false);

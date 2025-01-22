@@ -54,26 +54,11 @@ export function CommandBar() {
         : WINDOW_SIZES.left.wide,
   };
 
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   async function onClick(e: React.MouseEvent) {
     e.preventDefault();
-    chrome.runtime.sendMessage(
-      { action: "screencast_in_background" },
-      async ({ streamId }) => {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            mandatory: {
-              chromeMediaSource: "tab",
-              chromeMediaSourceId: streamId,
-            },
-          },
-        });
 
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-        }
-      },
-    );
+    await setUserIntent(inputValue);
+    setIsVisible(false);
   }
 
   useEffect(() => {
@@ -122,11 +107,6 @@ export function CommandBar() {
         overflow: "hidden",
       }}
     >
-      <video
-        ref={videoRef}
-        autoPlay
-        style={{ width: "500px", height: "500px" }}
-      />
       <div className="p-4">
         <div
           className="flex w-full items-center"

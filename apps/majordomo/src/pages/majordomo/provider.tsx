@@ -13,6 +13,8 @@ export type CursorCoordinate = {
 };
 
 type MajordomoContextType = {
+  currentTabIsWorking: () => Promise<boolean>;
+
   loadState: () => Promise<ExtensionState | null>;
   clearState: () => Promise<void>;
 
@@ -94,6 +96,21 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
     });
   }
 
+  async function getCurrentTabId(): Promise<number> {
+    const currentTab = await new Promise<{ id: number }>((resolve) => {
+      chrome.runtime.sendMessage({ action: "get_tab_id" }, resolve);
+    });
+
+    return currentTab?.id;
+  }
+
+  async function currentTabIsWorking() {
+    const currentTabId = await getCurrentTabId();
+    const extState = await loadState();
+
+    return currentTabId === extState?.workingTabId;
+  }
+
   async function setUserIntent(intent: string) {
     await saveState({ userIntent: intent });
     setStateTrigger((t) => !t);
@@ -151,12 +168,16 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
-    loadState().then((ext) => {
+    loadState().then(async (ext) => {
       if (!ext) {
         throw new Error("provider.useEffect: extensionState is null");
       }
 
-      const { userIntent } = ext;
+      const { workingTabId, userIntent } = ext;
+      const currentTabId = await getCurrentTabId();
+      if (currentTabId !== workingTabId) {
+        return;
+      }
       if (!userIntent) {
         return;
       }
@@ -203,6 +224,7 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
   return (
     <MajordomoContext.Provider
       value={{
+        currentTabIsWorking,
         loadState,
         clearState,
         stateTrigger,
