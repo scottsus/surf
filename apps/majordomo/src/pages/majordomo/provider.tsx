@@ -4,8 +4,11 @@ import { summarizeAction } from "@src/lib/ai/api/summarize-action";
 import { ActionMetadata } from "@src/lib/interface/action-metadata";
 import { ExtensionState } from "@src/lib/interface/state";
 import { ThinkingState } from "@src/lib/interface/thinking-state";
+import { sleep } from "@src/lib/utils";
 import { createContext, useContext, useEffect, useState } from "react";
 import { toast } from "sonner";
+
+import { OverlayState } from "./overlay";
 
 export type CursorCoordinate = {
   x: number;
@@ -25,6 +28,9 @@ type MajordomoContextType = {
 
   setUserIntent: (intent: string) => Promise<void>;
   updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
+
+  overlayState: OverlayState;
+  setOverlayState: React.Dispatch<React.SetStateAction<OverlayState>>;
 
   RiveComponent: (props: React.ComponentProps<"canvas">) => JSX.Element;
 
@@ -47,6 +53,11 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
   const [thinkingState, setThinkingState] = useState<ThinkingState>({
     type: "idle",
   });
+
+  // Overlay
+  const [overlayState, setOverlayState] = useState<OverlayState>(
+    OverlayState.IDLE,
+  );
 
   // Cursor
   const { rive, RiveComponent } = useRive({
@@ -92,6 +103,7 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function clearState() {
+    await safeExit();
     setStateTrigger((t) => !t);
     return await new Promise<void>((resolve) => {
       chrome.runtime.sendMessage({ action: "clear_state" }, resolve);
@@ -169,6 +181,11 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
     });
   }
 
+  async function safeExit() {
+    setOverlayState(OverlayState.EXITING);
+    await sleep(1500);
+  }
+
   function performClick() {
     setIsClicking(true);
     const timeoutId = setTimeout(() => {
@@ -243,6 +260,8 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
         thinkingState,
         setThinkingState,
         setUserIntent,
+        overlayState,
+        setOverlayState,
         RiveComponent,
         isClicking,
         updateCursorPosition,
