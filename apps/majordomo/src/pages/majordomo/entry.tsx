@@ -6,6 +6,7 @@ import { Completer } from "./completer";
 import { Cursor } from "./cursor";
 import styles from "./index.css?inline";
 import { Overlay } from "./overlay";
+import { Pip } from "./pip";
 import { MajordomoProvider } from "./provider";
 
 const rootElement = document.createElement("div");
@@ -54,6 +55,7 @@ root.render(
     <MajordomoProvider>
       <Overlay>
         <CommandBar />
+        <Pip />
         <Cursor />
         <Completer />
       </Overlay>

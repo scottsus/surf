@@ -1,34 +1,31 @@
+import { MinifiedElement } from "@repo/types/element";
 import { StateMachineInput } from "@rive-app/react-canvas";
 import { CursorCoordinate } from "@src/pages/majordomo/provider";
 import { toast } from "sonner";
 
-import { chooseAction } from "../ai/api/choose-action";
+import { chooseActionAndQuerySelector } from "../ai/api/choose-action-and-query-selector";
 import { chooseQuerySelector } from "../ai/api/choose-query-selector";
 import { getRelevantElements } from "../dom/get-elements";
-import { Action } from "../interface/action";
+import { Action, Action_v2 } from "../interface/action";
 import { ActionMetadata } from "../interface/action-metadata";
-import { ThinkingState } from "../interface/thinking-state";
 import { sleep } from "../utils";
 
 export async function generateAction({
-  screenshot,
   userIntent,
+  minifiedElements,
   history,
 }: {
-  screenshot: string;
   userIntent: string;
+  minifiedElements: MinifiedElement[];
   history: ActionMetadata[];
 }) {
-  const action = (await chooseAction({
+  const actions = await chooseActionAndQuerySelector({
     userIntent,
-    screenshot,
+    minifiedElements,
     history,
-  })) as Action | undefined;
-  if (!action) {
-    throw new Error("generateAction: undefined");
-  }
+  });
 
-  return { action };
+  return { actions };
 }
 
 /**
@@ -70,16 +67,13 @@ export async function takeNavigateAction({ url }: { url: string }) {
 }
 
 export async function takeClickAction({
-  agentIntent,
-  history,
-  setThinkingState,
+  querySelector,
   cursorOpts,
 }: {
-  agentIntent: string;
-  history: ActionMetadata[];
-  setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
+  querySelector: string;
   cursorOpts: {
     clickAction: StateMachineInput | null;
+    performClick: () => void;
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
     setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
     setCursorPositionEstimate: React.Dispatch<
@@ -87,42 +81,27 @@ export async function takeClickAction({
     >;
   };
 }): Promise<{
-  querySelector: string;
   runnable?: (() => Promise<any>) | undefined;
 }> {
-  const querySelectorResponse = await getQuerySelector({
-    agentIntent,
-    history,
-    cursorOpts,
-  });
-  if (!querySelectorResponse) {
-    return { querySelector: "error" };
-  }
-
-  setThinkingState({ type: "clicking_button" });
-
   const runnable = async () => {
-    await moveToElement(querySelectorResponse);
+    await moveToElement({ querySelector, cursorOpts });
   };
 
-  return { querySelector: querySelectorResponse.querySelector, runnable };
+  return { runnable };
 }
 
 export async function takeInputAction({
-  inputDescription,
+  querySelector,
   content,
-  action,
-  history,
-  setThinkingState,
+  withSubmit,
   cursorOpts,
 }: {
-  inputDescription: string;
+  querySelector: string;
   content: string;
-  action: Action;
-  history: ActionMetadata[];
-  setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
+  withSubmit: boolean;
   cursorOpts: {
     clickAction: StateMachineInput | null;
+    performClick: () => void;
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
     setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
     setCursorPositionEstimate: React.Dispatch<
@@ -130,23 +109,10 @@ export async function takeInputAction({
     >;
   };
 }): Promise<{
-  querySelector: string;
   runnable?: (() => Promise<void>) | undefined;
 }> {
-  const querySelectorResponse = await getQuerySelector({
-    agentIntent: inputDescription,
-    history,
-    cursorOpts,
-  });
-  if (!querySelectorResponse) {
-    toast.error("unable to get particular query selector");
-    return { querySelector: "error" };
-  }
-
-  setThinkingState({ type: "clicking_button" });
-
   const runnable = async () => {
-    const { element } = await moveToElement(querySelectorResponse);
+    const { element } = await moveToElement({ querySelector, cursorOpts });
     if (!element) {
       toast.error("unable to move to element");
     }
@@ -160,13 +126,13 @@ export async function takeInputAction({
     } else if (inputElement.isContentEditable) {
       inputElement.textContent = content;
     }
-    if (action.type === "input" && action.withSubmit) {
+    if (withSubmit) {
       await sleep(200);
       inputElement.closest("form")?.submit();
     }
   };
 
-  return { querySelector: querySelectorResponse.querySelector, runnable };
+  return { runnable };
 }
 
 export async function takeRefreshAction() {
@@ -242,6 +208,7 @@ async function moveToElement({
   querySelector: string;
   cursorOpts: {
     clickAction: StateMachineInput | null;
+    performClick: () => void;
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
     setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
     setCursorPositionEstimate: React.Dispatch<
@@ -275,14 +242,12 @@ async function moveToElement({
             // @TODO: update this or remove
             // cursorOpts.updateCursorPosition(newCoords);
 
-            const element = document.elementFromPoint(
-              centerX,
-              centerY,
-            ) as HTMLElement;
-
-            timeoutId = setTimeout(() => {
+            timeoutId = setTimeout(async () => {
               const events = ["mousedown", "mouseup", "click"];
               cursorOpts.clickAction && cursorOpts.clickAction.fire();
+              cursorOpts.performClick();
+              await sleep(500);
+
               events.forEach((eventType) => {
                 const event = new MouseEvent(eventType, {
                   bubbles: true,
@@ -291,7 +256,7 @@ async function moveToElement({
                   clientX: centerX,
                   clientY: centerY,
                 });
-                element.dispatchEvent(event);
+                target.dispatchEvent(event);
               });
 
               resolve(); // this ends the await

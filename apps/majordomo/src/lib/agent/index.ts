@@ -1,8 +1,10 @@
+import { MinifiedElement } from "@repo/types/element";
 import { StateMachineInput } from "@rive-app/react-canvas";
 import { CursorCoordinate } from "@src/pages/majordomo/provider";
 import { toast } from "sonner";
 
 import { summarizeAction } from "../ai/api/summarize-action";
+import { minifyDom } from "../dom/minify-dom";
 import { ActionMetadata, ActionState } from "../interface/action-metadata";
 import { ExtensionState } from "../interface/state";
 import { ThinkingState } from "../interface/thinking-state";
@@ -14,7 +16,6 @@ import {
   takeInputAction,
   takeNavigateAction,
   takeRefreshAction,
-  takeScreenshot,
 } from "./actions";
 
 const MAX_RUN_STEPS = 10;
@@ -22,6 +23,7 @@ const MAX_RUN_STEPS = 10;
 export async function runUntilCompletion({
   stateManager,
   historyManager,
+  setThinkingState,
   cursorOpts,
 }: {
   stateManager: {
@@ -34,9 +36,10 @@ export async function runUntilCompletion({
     appendHistory: (newAction: ActionMetadata) => Promise<void | undefined>;
     evaluateHistory: (success: boolean) => Promise<void | undefined>;
   };
+  setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
   cursorOpts: {
-    setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
     clickAction: StateMachineInput | null;
+    performClick: () => void;
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
     setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
     setCursorPositionEstimate: React.Dispatch<
@@ -52,17 +55,11 @@ export async function runUntilCompletion({
   }
   const { userIntent, history: unevaluatedHistory } = state;
   const { getLatestAction, appendHistory, evaluateHistory } = historyManager;
-  const {
-    setThinkingState,
-    clickAction,
-    updateCursorPosition,
-    setCursorPosition,
-    setCursorPositionEstimate,
-  } = cursorOpts;
 
   try {
     let i = 0;
     let runInProgress = true;
+    let querySelector: string | undefined;
     let runnable: (() => Promise<void>) | undefined;
 
     while (i < MAX_RUN_STEPS && runInProgress) {
@@ -70,20 +67,11 @@ export async function runUntilCompletion({
       setThinkingState({ type: "awaiting_ui_changes" });
       await sleep(500);
 
-      const { ok, screenshot } = await takeScreenshot();
-      if (!ok) {
-        toast.error(
-          "unable to take screenshot - please adjust your screen size and try again",
-        );
-        await clearState();
-        setThinkingState({ type: "aborted" });
-        runInProgress = false; // extra redundancy
-        break;
-      }
+      const minifiedElements = minifyDom(document.body);
 
       const latestAction = await getLatestAction();
       if (latestAction) {
-        // evaluate the unevaluatedHistory
+        // @TODO: evaluate the unevaluatedHistory
         const success = true;
         await evaluateHistory(success);
       }
@@ -98,93 +86,100 @@ export async function runUntilCompletion({
       console.log("history:", history);
 
       setThinkingState({ type: "deciding_action" });
-      const { action } = await generateAction({
-        screenshot,
+      const { actions } = await generateAction({
         userIntent,
+        minifiedElements,
         history,
       });
-      if (!action) {
-        toast.error("no action was chosen");
-        continue;
+      if (actions.length === 0) {
+        throw new Error("generateAction: no action generated");
       }
-      console.log("action:", action);
+      console.log("actions:", actions);
 
-      setThinkingState({ type: "action", action });
-      switch (action.type) {
-        case "navigate":
-          const navigateActionResponse = await takeNavigateAction({
-            url: action.url,
-          });
-          runnable = navigateActionResponse.runnable;
-          break;
+      for (const action of actions) {
+        setThinkingState({ type: "action", action });
+        switch (action.type) {
+          case "navigate":
+            const navigateActionResponse = await takeNavigateAction({
+              url: action.url,
+            });
+            runnable = navigateActionResponse.runnable;
+            break;
 
-        case "click":
-          const clickActionResponse = await takeClickAction({
-            agentIntent: `aria-label: ${action.ariaLabel}, description: ${action.targetDescription}`,
-            history,
-            setThinkingState,
-            cursorOpts: {
-              clickAction,
-              updateCursorPosition,
-              setCursorPosition,
-              setCursorPositionEstimate,
-            },
-          });
-          runnable = clickActionResponse.runnable;
-          break;
+          case "click":
+            setThinkingState({ type: "clicking_button" });
+            querySelector = getQuerySelectorFromIndex({
+              minifiedElements,
+              idx: action.idx,
+            });
+            if (!querySelector) {
+              throw new Error("no query selector found");
+            }
+            console.log(`document.querySelector("${querySelector}")`);
+            const clickActionResponse = await takeClickAction({
+              querySelector,
+              cursorOpts,
+            });
+            runnable = clickActionResponse.runnable;
+            break;
 
-        case "input":
-          const inputActionResponse = await takeInputAction({
-            inputDescription: `aria-label: ${action.ariaLabel}, description: ${action.targetDescription}`,
-            content: action.content,
+          case "input":
+            setThinkingState({ type: "clicking_button" });
+            querySelector = getQuerySelectorFromIndex({
+              minifiedElements,
+              idx: action.idx,
+            });
+            if (!querySelector) {
+              throw new Error("no query selector found");
+            }
+            console.log(`document.querySelector("${querySelector}")`);
+            const inputActionResponse = await takeInputAction({
+              querySelector,
+              content: action.content,
+              withSubmit: action.withSubmit,
+              cursorOpts,
+            });
+            runnable = inputActionResponse.runnable;
+            break;
+
+          case "refresh":
+            const refreshActionResponse = await takeRefreshAction();
+            runnable = refreshActionResponse.runnable;
+            break;
+
+          case "back":
+            const backActionResponse = await takeBackAction();
+            runnable = backActionResponse.runnable;
+            break;
+
+          case "done":
+            runnable = undefined;
+            await clearState();
+            setThinkingState({ type: "done" });
+            runInProgress = false;
+            break;
+
+          default:
+            toast.error("unknown action");
+            break;
+        }
+
+        /**
+         * we do this because a "runnable" has the chance to navigate out of the page
+         * resetting the execution context. if there is any cleanup to be done, it should
+         * be right before this action.
+         */
+        if (runnable) {
+          await appendHistory({
             action,
-            history,
-            setThinkingState,
-            cursorOpts: {
-              clickAction,
-              updateCursorPosition,
-              setCursorPosition,
-              setCursorPositionEstimate,
-            },
+            querySelector: "",
+            summary: await summarizeAction({ action }),
+            state: ActionState.IN_PROGRESS,
           });
-          runnable = inputActionResponse.runnable;
-          break;
+          await runnable();
+        }
 
-        case "refresh":
-          const refreshActionResponse = await takeRefreshAction();
-          runnable = refreshActionResponse.runnable;
-          break;
-
-        case "back":
-          const backActionResponse = await takeBackAction();
-          runnable = backActionResponse.runnable;
-          break;
-
-        case "done":
-          runnable = undefined;
-          await clearState();
-          setThinkingState({ type: "done" });
-          runInProgress = false;
-          break;
-
-        default:
-          toast.error("unknown action");
-          break;
-      }
-
-      /**
-       * we do this because a "runnable" has the chance to navigate out of the page
-       * resetting the execution context. if there is any cleanup to be done, it should
-       * be right before this action.
-       */
-      if (runnable) {
-        await appendHistory({
-          action,
-          querySelector: "",
-          summary: await summarizeAction({ action }),
-          state: ActionState.IN_PROGRESS,
-        });
-        await runnable();
+        await sleep(500);
       }
     } // endwhile
 
@@ -194,4 +189,14 @@ export async function runUntilCompletion({
   } catch (err) {
     console.error("runUntilCompletion:", err);
   }
+}
+
+function getQuerySelectorFromIndex({
+  minifiedElements,
+  idx,
+}: {
+  minifiedElements: MinifiedElement[];
+  idx: number;
+}) {
+  return minifiedElements.find((el) => el.idx === idx)?.meta?.querySelector;
 }

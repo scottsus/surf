@@ -21,6 +21,7 @@ export function CommandBar() {
   const [isVisible, setIsVisible] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const [numCustomSuggestions, setNumCustomSuggestions] = useState(0);
 
   const { windowSize } = useWindowSize();
   const WINDOW_SIZES = {
@@ -152,7 +153,12 @@ export function CommandBar() {
         </div>
 
         <CustomSuggestions
-          setters={{ setInputValue, setUserIntent, setIsVisible }}
+          setters={{
+            setInputValue,
+            setUserIntent,
+            setIsVisible,
+            setNumCustomSuggestions,
+          }}
         />
 
         <h3
@@ -170,19 +176,19 @@ export function CommandBar() {
           <Suggestion
             Icon={CalendarIcon}
             description="When's my next meeting?"
-            number={4}
+            number={numCustomSuggestions + 1}
             setters={{ setInputValue, setUserIntent, setIsVisible }}
           />
           <Suggestion
             Icon={MailIcon}
             description="Draft an email reply to Scott"
-            number={5}
+            number={numCustomSuggestions + 2}
             setters={{ setInputValue, setUserIntent, setIsVisible }}
           />
           <Suggestion
             Icon={MailIcon}
             description="Draft an email reply to Calix"
-            number={6}
+            number={numCustomSuggestions + 3}
             setters={{ setInputValue, setUserIntent, setIsVisible }}
           />
         </div>
@@ -224,9 +230,15 @@ function CustomSuggestions({
     setInputValue: React.Dispatch<React.SetStateAction<string>>;
     setUserIntent: (intent: string) => void;
     setIsVisible: React.Dispatch<React.SetStateAction<boolean>>;
+    setNumCustomSuggestions: React.Dispatch<React.SetStateAction<number>>;
   };
 }) {
-  const { setInputValue, setUserIntent, setIsVisible } = setters;
+  const {
+    setInputValue,
+    setUserIntent,
+    setIsVisible,
+    setNumCustomSuggestions,
+  } = setters;
 
   const proactiveDomain = proactiveDomains.find((domain) =>
     window.location.hostname.includes(domain),
@@ -240,6 +252,7 @@ function CustomSuggestions({
   if (suggestions.length === 0) {
     return <></>;
   }
+  setNumCustomSuggestions(suggestions.length);
 
   return (
     <div className="">

@@ -4,8 +4,12 @@
  */
 
 export const SERVER_URL =
-  true || process.env.NODE_ENV !== "development"
+  process.env.NODE_ENV !== "development"
     ? "https://majordomo-web.vercel.app"
     : "http://localhost:3000";
 
 console.log("server:", SERVER_URL);
+
+export const USE_RIVE = false;
+
+export const INCLUDE_ID_IN_QUERY_SELECTOR = false;

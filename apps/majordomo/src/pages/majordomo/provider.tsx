@@ -13,6 +13,8 @@ export type CursorCoordinate = {
 };
 
 type MajordomoContextType = {
+  currentTabIsWorking: () => Promise<boolean>;
+
   loadState: () => Promise<ExtensionState | null>;
   clearState: () => Promise<void>;
 
@@ -26,6 +28,7 @@ type MajordomoContextType = {
 
   RiveComponent: (props: React.ComponentProps<"canvas">) => JSX.Element;
 
+  isClicking: boolean;
   cursorPosition: CursorCoordinate;
   setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
   cursorPositionEstimate: CursorCoordinate;
@@ -57,6 +60,7 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
     "Click",
     true,
   );
+  const [isClicking, setIsClicking] = useState(false);
   const [cursorPosition, setCursorPosition] = useState<CursorCoordinate>({
     x: window.innerWidth / 2,
     y: window.innerHeight / 2,
@@ -92,6 +96,21 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
     return await new Promise<void>((resolve) => {
       chrome.runtime.sendMessage({ action: "clear_state" }, resolve);
     });
+  }
+
+  async function getCurrentTabId(): Promise<number> {
+    const currentTab = await new Promise<{ id: number }>((resolve) => {
+      chrome.runtime.sendMessage({ action: "get_tab_id" }, resolve);
+    });
+
+    return currentTab?.id;
+  }
+
+  async function currentTabIsWorking() {
+    const currentTabId = await getCurrentTabId();
+    const extState = await loadState();
+
+    return currentTabId === extState?.workingTabId;
   }
 
   async function setUserIntent(intent: string) {
@@ -150,13 +169,26 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
     });
   }
 
+  function performClick() {
+    setIsClicking(true);
+    const timeoutId = setTimeout(() => {
+      setIsClicking(false);
+    }, 150);
+
+    return () => clearTimeout(timeoutId);
+  }
+
   useEffect(() => {
-    loadState().then((ext) => {
+    loadState().then(async (ext) => {
       if (!ext) {
         throw new Error("provider.useEffect: extensionState is null");
       }
 
-      const { userIntent } = ext;
+      const { workingTabId, userIntent } = ext;
+      const currentTabId = await getCurrentTabId();
+      if (currentTabId !== workingTabId) {
+        return;
+      }
       if (!userIntent) {
         return;
       }
@@ -173,9 +205,10 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
           appendHistory,
           evaluateHistory,
         },
+        setThinkingState,
         cursorOpts: {
-          setThinkingState,
           clickAction,
+          performClick,
           updateCursorPosition,
           setCursorPosition,
           setCursorPositionEstimate,
@@ -203,6 +236,7 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
   return (
     <MajordomoContext.Provider
       value={{
+        currentTabIsWorking,
         loadState,
         clearState,
         stateTrigger,
@@ -210,6 +244,7 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
         setThinkingState,
         setUserIntent,
         RiveComponent,
+        isClicking,
         updateCursorPosition,
         cursorPosition,
         setCursorPosition,

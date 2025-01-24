@@ -4,6 +4,7 @@ let instance: ExtensionStateManager | null = null;
 
 export class ExtensionStateManager {
   private initialState: ExtensionState = {
+    workingTabId: -1,
     userIntent: "",
     history: [],
     cursorPosition: { x: 0, y: 0 },
@@ -25,7 +26,6 @@ export class ExtensionStateManager {
 
   public updateState(newState: Partial<ExtensionState>) {
     this.state = { ...this.state, ...newState };
-    console.log("newState:", this.state);
   }
 
   public clearState() {
