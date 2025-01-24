@@ -4,7 +4,7 @@ import { useCallback, useEffect } from "react";
 
 import { useMajordomo } from "./provider";
 
-const IS_TESTING_UI = process.env.NODE_ENV === "development" && true;
+const IS_TESTING_UI = process.env.NODE_ENV === "development" && false;
 
 export function Cursor() {
   const {
