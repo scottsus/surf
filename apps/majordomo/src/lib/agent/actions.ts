@@ -73,6 +73,7 @@ export async function takeClickAction({
   querySelector: string;
   cursorOpts: {
     clickAction: StateMachineInput | null;
+    performClick: () => void;
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
     setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
     setCursorPositionEstimate: React.Dispatch<
@@ -100,6 +101,7 @@ export async function takeInputAction({
   withSubmit: boolean;
   cursorOpts: {
     clickAction: StateMachineInput | null;
+    performClick: () => void;
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
     setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
     setCursorPositionEstimate: React.Dispatch<
@@ -206,6 +208,7 @@ async function moveToElement({
   querySelector: string;
   cursorOpts: {
     clickAction: StateMachineInput | null;
+    performClick: () => void;
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
     setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
     setCursorPositionEstimate: React.Dispatch<
@@ -239,9 +242,12 @@ async function moveToElement({
             // @TODO: update this or remove
             // cursorOpts.updateCursorPosition(newCoords);
 
-            timeoutId = setTimeout(() => {
+            timeoutId = setTimeout(async () => {
               const events = ["mousedown", "mouseup", "click"];
               cursorOpts.clickAction && cursorOpts.clickAction.fire();
+              cursorOpts.performClick();
+              await sleep(500);
+
               events.forEach((eventType) => {
                 const event = new MouseEvent(eventType, {
                   bubbles: true,

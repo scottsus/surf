@@ -1,5 +1,5 @@
 /**
- * pip: Picture-in-picture
+ * pip: picture-in-picture
  * Plays when Surf is working, then user changes tab.
  * This will screencast working tab into active tab.
  */
@@ -31,6 +31,7 @@ export function Pip() {
 
         setShowPip(true);
         videoRef.current.addEventListener("ended", () => {
+          // @TODO: not working
           setShowPip(false);
         });
       }

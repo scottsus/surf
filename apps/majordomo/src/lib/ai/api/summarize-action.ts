@@ -5,7 +5,7 @@ import { Action, Action_v2 } from "@src/lib/interface/action";
  */
 export async function summarizeAction({
   action,
-  success,
+  success = true,
 }: {
   action: Action_v2;
   success?: boolean;

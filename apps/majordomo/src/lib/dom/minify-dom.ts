@@ -1,5 +1,7 @@
 import { MinifiedElement } from "@repo/types/element";
 
+import { INCLUDE_ID_IN_QUERY_SELECTOR } from "../env";
+
 export function minifyDom(document: HTMLElement): MinifiedElement[] {
   const minifiedDom: MinifiedElement[] = [];
 
@@ -60,18 +62,20 @@ function getQuerySelector(el: Element): string {
   while (current && current !== document.body) {
     let selector = current.tagName.toLowerCase();
 
-    if (current.id) {
-      // special case for ':' like in gmail
-      if (current.id.includes(":")) {
-        selector += `[id="${current.id}"]`;
-      } else {
-        // other special characters
-        selector += `#${CSS.escape(current.id)}`;
-      }
-      path.unshift(selector);
+    if (INCLUDE_ID_IN_QUERY_SELECTOR) {
+      if (current.id) {
+        // special case for ':' like in gmail
+        if (current.id.includes(":")) {
+          selector += `[id="${current.id}"]`;
+        } else {
+          // other special characters
+          selector += `#${CSS.escape(current.id)}`;
+        }
+        path.unshift(selector);
 
-      // ID is unique, stop here
-      break;
+        // ID is unique, stop here
+        break;
+      }
     }
 
     if (current.className) {

@@ -1,17 +1,18 @@
+import { USE_RIVE } from "@src/lib/env";
 import { stringify } from "@src/lib/interface/action";
 import { useCallback, useEffect } from "react";
 
 import { useMajordomo } from "./provider";
 
-const IS_TESTING = process.env.NODE_ENV === "development" && false;
+const IS_TESTING_UI = process.env.NODE_ENV === "development" && true;
 
 export function Cursor() {
   const {
+    isClicking,
     RiveComponent,
     thinkingState,
     setThinkingState,
     cursorPosition,
-    cursorPositionEstimate,
   } = useMajordomo();
 
   const stringifyThinkingState = useCallback(() => {
@@ -59,42 +60,56 @@ export function Cursor() {
       <div
         className="absolute"
         style={{
-          left: cursorPosition.x - 60,
-          top: cursorPosition.y - 40,
-          display: thinkingState.type !== "idle" ? "block" : "none",
+          left: cursorPosition.x,
+          top: cursorPosition.y,
+          display:
+            IS_TESTING_UI || thinkingState.type !== "idle" ? "block" : "none",
           zIndex: 2147483647,
         }}
       >
-        <RiveComponent
-          // @TODO: not working with some websites like LinkedIn
-          id="rivecursor"
-          style={{ width: "8rem", height: "8rem" }}
-        />
+        {USE_RIVE ? (
+          <RiveComponent
+            /**
+             * @TODO: not working with certain websites
+             * CORS prevent fetching wasm files from CDN
+             */
+            id="rivecursor"
+            style={{ width: "8rem", height: "8rem" }}
+          />
+        ) : (
+          <img
+            src={chrome.runtime.getURL("/cursor.svg")}
+            width={60}
+            height={60}
+            style={{
+              // left: cursorPosition.x,
+              // top: cursorPosition.y - 5,
+              transition: "all 0.2s",
+              transform: isClicking
+                ? "translate(-10px, -10px) scale(0.85)"
+                : "none",
+            }}
+            alt="" // intentionally blank
+          />
+        )}
       </div>
+
       <div
         className="fixed flex items-center rounded-md"
         style={{
           backgroundColor: "#5B7EFF",
-          left: cursorPosition.x + 45,
-          top: cursorPosition.y + 10,
+          left: cursorPosition.x + 70,
+          top: cursorPosition.y + 20,
           padding: "0.5em 0.75em",
           border: "2px solid #4D6CDB",
-          display: thinkingState.type !== "idle" ? "block" : "none",
+          display:
+            IS_TESTING_UI || thinkingState.type !== "idle" ? "block" : "none",
         }}
       >
         <p className="text-white" style={{ margin: 0 }}>
           {stringifyThinkingState()}
         </p>
       </div>
-      {IS_TESTING && (
-        <div
-          style={{
-            left: cursorPositionEstimate.x,
-            top: cursorPositionEstimate.y,
-          }}
-          className="pointer-events-none fixed z-50 h-[400px] w-[400px] rounded-full bg-blue-500 opacity-30"
-        />
-      )}
     </div>
   );
 }

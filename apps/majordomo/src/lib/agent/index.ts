@@ -39,6 +39,7 @@ export async function runUntilCompletion({
   setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
   cursorOpts: {
     clickAction: StateMachineInput | null;
+    performClick: () => void;
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
     setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
     setCursorPositionEstimate: React.Dispatch<

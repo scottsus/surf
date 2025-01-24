@@ -21,32 +21,6 @@ async function getCurrentTabId() {
   return currentTab?.id;
 }
 
-chrome.tabs.onActivated.addListener(async (activeInfo) => {
-  try {
-    const { tabId } = activeInfo;
-    if (!tabId) {
-      return;
-    }
-
-    const workingTabId = extensionStateManager.loadState().workingTabId;
-    if (workingTabId === -1 || workingTabId === tabId) {
-      return;
-    }
-
-    const screencast = await getScreencastStreamId({
-      targetTabId: workingTabId,
-      consumerTabId: tabId,
-    });
-
-    await chrome.tabs.sendMessage(tabId, {
-      action: "tab_changed",
-      streamId: screencast.streamId,
-    });
-  } catch (err) {
-    // fails if workingTabId is invalid, no problem
-  }
-});
-
 async function screenshot() {
   try {
     const [tab] = await chrome.tabs.query({
@@ -234,6 +208,33 @@ chrome.runtime.onMessage.addListener(async (message, _, sendResponse) => {
   });
 
   sendResponse({ streamId });
+});
+
+// on tab change
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  try {
+    const { tabId } = activeInfo;
+    if (!tabId) {
+      return;
+    }
+
+    const workingTabId = extensionStateManager.loadState().workingTabId;
+    if (workingTabId === -1 || workingTabId === tabId) {
+      return;
+    }
+
+    const screencast = await getScreencastStreamId({
+      targetTabId: workingTabId,
+      consumerTabId: tabId,
+    });
+
+    await chrome.tabs.sendMessage(tabId, {
+      action: "tab_changed",
+      streamId: screencast.streamId,
+    });
+  } catch (err) {
+    // fails if workingTabId is invalid, no problem
+  }
 });
 
 console.log("listeners initialized");

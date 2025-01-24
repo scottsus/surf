@@ -8,7 +8,6 @@ export function getRelevantElements() {
   return getElementsWithinRadiusOfEstimate();
 }
 
-const DEFAULT_RADIUS = 200;
 function getElementsWithinRadiusOfEstimate(): DomElement[] {
   const interactiveElements = getInteractiveElements();
 

@@ -9,3 +9,7 @@ export const SERVER_URL =
     : "http://localhost:3000";
 
 console.log("server:", SERVER_URL);
+
+export const USE_RIVE = false;
+
+export const INCLUDE_ID_IN_QUERY_SELECTOR = false;

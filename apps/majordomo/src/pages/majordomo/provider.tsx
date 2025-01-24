@@ -28,6 +28,7 @@ type MajordomoContextType = {
 
   RiveComponent: (props: React.ComponentProps<"canvas">) => JSX.Element;
 
+  isClicking: boolean;
   cursorPosition: CursorCoordinate;
   setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
   cursorPositionEstimate: CursorCoordinate;
@@ -59,6 +60,7 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
     "Click",
     true,
   );
+  const [isClicking, setIsClicking] = useState(false);
   const [cursorPosition, setCursorPosition] = useState<CursorCoordinate>({
     x: window.innerWidth / 2,
     y: window.innerHeight / 2,
@@ -167,6 +169,15 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
     });
   }
 
+  function performClick() {
+    setIsClicking(true);
+    const timeoutId = setTimeout(() => {
+      setIsClicking(false);
+    }, 150);
+
+    return () => clearTimeout(timeoutId);
+  }
+
   useEffect(() => {
     loadState().then(async (ext) => {
       if (!ext) {
@@ -197,6 +208,7 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
         setThinkingState,
         cursorOpts: {
           clickAction,
+          performClick,
           updateCursorPosition,
           setCursorPosition,
           setCursorPositionEstimate,
@@ -232,6 +244,7 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
         setThinkingState,
         setUserIntent,
         RiveComponent,
+        isClicking,
         updateCursorPosition,
         cursorPosition,
         setCursorPosition,
