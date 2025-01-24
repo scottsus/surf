@@ -4,7 +4,7 @@
  */
 
 export const SERVER_URL =
-  process.env.NODE_ENV !== "development"
+  true || process.env.NODE_ENV !== "development"
     ? "https://majordomo-web.vercel.app"
     : "http://localhost:3000";
 
