@@ -1,13 +1,12 @@
 import { Action, Action_v2 } from "@src/lib/interface/action";
 
-/**
- * @TODO make AI do this?
- */
 export async function summarizeAction({
   action,
-  success = true,
+  userInput,
+  success = true, // @TODO: evaluate this
 }: {
   action: Action_v2;
+  userInput?: string;
   success?: boolean;
 }) {
   const successStatus =
@@ -16,6 +15,8 @@ export async function summarizeAction({
   switch (action.type) {
     case "navigate":
       return `${successStatus} navigate to ${action.url}`;
+    case "clarify":
+      return `clarified ${action.question}; user said ${userInput}`;
     case "click":
       return `${successStatus} click ${action.description}`;
     case "input":

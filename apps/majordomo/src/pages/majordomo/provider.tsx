@@ -163,10 +163,11 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
     if (!latestAction) {
       return;
     }
-    latestAction.summary = await summarizeAction({
-      action: latestAction.action,
-      success,
-    });
+    // @TODO: actually evaluate
+    // latestAction.summary = await summarizeAction({
+    //   action: latestAction.action,
+    //   success,
+    // });
     const newHistory = [...history.slice(0, history.length - 1), latestAction];
     await saveState({ history: newHistory });
   }

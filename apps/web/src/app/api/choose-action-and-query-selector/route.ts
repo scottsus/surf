@@ -16,6 +16,7 @@ export async function POST(req: Request) {
     if (!userIntent) {
       throw new Error("missing userIntent");
     }
+    console.log("userIntent:", userIntent);
 
     const htmlDom = htmlDomStr ? JSON.parse(htmlDomStr) : [];
     const htmlDomInput = `Here is a list of DOM elements to choose from:
@@ -39,12 +40,19 @@ export async function POST(req: Request) {
 
     const { object } = await generateObject({
       model: claudeSonnet,
-      system: `You are a compiler. Given a userIntent in natural language, and a custom minified DOM tree,
+      system: `You are a browser agent. Given a userIntent in natural language, and a custom minified DOM tree,
       you pick the best action on what to do next in this webpage from a list of possible actions.
+
+      You want to be as specific as possible however. Sometimes the user might not provide enough information,
+      in which case it would be better to clarify with the user by asking a clarifying question. Other times, you
+      might reach a checkout page or hit forms requiring additional user info; in which case you should also ask
+      the user for a clarifying question. If the user wants to order something, do ask the user AT MOST ONCE AT A TIME
+      for the details of the product being ordered.
 
       An action takes the following form:
        type Action =
        | { type: "navigate"; url: string }
+       | { type: "clarify"; question: string }
        | { type: "click"; idx: number; description: string }
        | {
         type: "input";

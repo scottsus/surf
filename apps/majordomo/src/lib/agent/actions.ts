@@ -66,6 +66,16 @@ export async function takeNavigateAction({ url }: { url: string }) {
   return { runnable };
 }
 
+export async function takeClarifyAction({ question }: { question: string }) {
+  const runnable = async () => {
+    await new Promise<void>((resolve) => {
+      resolve();
+    });
+  };
+
+  return { runnable };
+}
+
 export async function takeClickAction({
   querySelector,
   cursorOpts,

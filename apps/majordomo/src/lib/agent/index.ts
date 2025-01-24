@@ -12,6 +12,7 @@ import { sleep } from "../utils";
 import {
   generateAction,
   takeBackAction,
+  takeClarifyAction,
   takeClickAction,
   takeInputAction,
   takeNavigateAction,
@@ -58,6 +59,7 @@ export async function runUntilCompletion({
 
   try {
     let i = 0;
+    let userInput = "";
     let runInProgress = true;
     let querySelector: string | undefined;
     let runnable: (() => Promise<void>) | undefined;
@@ -104,6 +106,14 @@ export async function runUntilCompletion({
               url: action.url,
             });
             runnable = navigateActionResponse.runnable;
+            break;
+
+          case "clarify":
+            userInput = "I want any pair of Nike Air Jordans";
+            const clarifyActionResponse = await takeClarifyAction({
+              question: action.question,
+            });
+            runnable = clarifyActionResponse.runnable;
             break;
 
           case "click":
@@ -173,7 +183,7 @@ export async function runUntilCompletion({
           await appendHistory({
             action,
             querySelector: "",
-            summary: await summarizeAction({ action }),
+            summary: await summarizeAction({ action, userInput }),
             state: ActionState.IN_PROGRESS,
           });
           await runnable();

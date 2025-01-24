@@ -24,6 +24,7 @@ export function Cursor() {
       case "deciding_action":
         return "deciding on next action...";
       case "action":
+        // @TODO: need to sync with `actions.ts`
         return stringify(thinkingState.action);
       case "clicking_button":
         return "choosing the right button...";
