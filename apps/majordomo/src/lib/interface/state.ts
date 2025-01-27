@@ -4,7 +4,8 @@ import { ActionMetadata } from "./action-metadata";
 
 export type ExtensionState = {
   workingTabId: number;
+  step: number;
   userIntent: string;
-  history: ActionMetadata[];
+  history: ActionMetadata[][];
   cursorPosition: CursorCoordinate;
 };

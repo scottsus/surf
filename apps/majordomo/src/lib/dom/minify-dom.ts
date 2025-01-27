@@ -1,4 +1,4 @@
-import { MinifiedElement } from "@repo/types/element";
+import { MinifiedElement } from "@repo/types";
 
 import { INCLUDE_ID_IN_QUERY_SELECTOR } from "../env";
 
@@ -13,14 +13,11 @@ export function minifyDom(document: HTMLElement): MinifiedElement[] {
   );
 
   elements.forEach((el, idx) => {
-    const title = el.getAttribute("title");
-    if (title === "credit card number") {
-      console.log("found credit card number!");
-    }
     const role = el.getAttribute("role");
-    const type = el.getAttribute("type");
-    if (role === "style" || role === "script" || role === "main") return;
     if (
+      role === "style" ||
+      role === "script" ||
+      role === "main" ||
       role === "grid" ||
       role === "table" ||
       role === "contentinfo" ||
@@ -36,16 +33,15 @@ export function minifyDom(document: HTMLElement): MinifiedElement[] {
       return;
     }
 
+    const type = el.getAttribute("type");
     const tag = (role || type || "div") as string;
-    const MAX_TOPIC_LEN = 100;
+
+    const MAX_TOPIC_LEN = 250;
     let topic = (
       el.getAttribute("aria-label") ||
       el.getAttribute("title") ||
       (el.textContent?.replace(/\s/g, "") as string)
     ).substring(0, MAX_TOPIC_LEN);
-    if (title === "credit card number") {
-      console.log("credit card topic:", topic);
-    }
     if (!topic) {
       return;
     }
@@ -60,7 +56,8 @@ export function minifyDom(document: HTMLElement): MinifiedElement[] {
       }
     }
 
-    const key = `${tag}-${topic}`;
+    const id = el.id;
+    const key = `${tag}-${id}-${topic}`;
     if (existingElements.has(key)) {
       return;
     }
@@ -68,6 +65,7 @@ export function minifyDom(document: HTMLElement): MinifiedElement[] {
 
     const newElement: MinifiedElement = {
       tag,
+      id,
       topic,
       idx,
       meta: {

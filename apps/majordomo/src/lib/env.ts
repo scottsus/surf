@@ -19,6 +19,8 @@ if (DEV) {
 
 export const IS_DEBUGGING = DEV && false;
 
+export const USE_AI_EVALS_FOR_PREV_ACTIONS = false;
+
 export const USE_RIVE = false;
 
 export const USE_VOICE_MODE = false;

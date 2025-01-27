@@ -1,4 +1,4 @@
-import { MinifiedElement } from "@repo/types/element";
+import { MinifiedElement } from "@repo/types";
 import { CursorCoordinate } from "@src/pages/majordomo/provider";
 import { MutableRefObject } from "react";
 import { toast } from "sonner";
@@ -15,15 +15,15 @@ export async function generateAction({
 }: {
   userIntent: string;
   minifiedElements: MinifiedElement[];
-  history: ActionMetadata[];
+  history: ActionMetadata[][];
 }) {
-  const actions = await chooseActionAndQuerySelector({
+  const actionStep = await chooseActionAndQuerySelector({
     userIntent,
     minifiedElements,
     history,
   });
 
-  return { actions };
+  return actionStep;
 }
 
 /**

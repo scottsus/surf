@@ -1,12 +1,13 @@
 import fs from "fs";
 import path from "path";
 import { chooseActionAndQuerySelectorResponseSchema } from "@repo/ai-schemas";
-import { minifiedElementToString } from "@repo/types/element";
+import { MinifiedElement, minifiedElementToString } from "@repo/types";
 import { claudeSonnet } from "~/src/lib/ai/clients/anthropic";
 import { generateObject } from "ai";
+import { z } from "zod";
 
-const LOG_MINIFIED_DOM = process.env.NODE_ENV === "development" && true;
-const LOG_PREV_ACTIONS = process.env.NODE_ENV === "development" && true;
+const MAX_HTML_DOM_LEN = 150_000;
+const LOG_MINIFIED_DOM = process.env.NODE_ENV === "development" && false;
 
 export async function POST(req: Request) {
   try {
@@ -19,31 +20,40 @@ export async function POST(req: Request) {
       throw new Error("missing userIntent");
     }
 
-    const htmlDom = htmlDomStr ? JSON.parse(htmlDomStr) : [];
+    const htmlDom: MinifiedElement[] = htmlDomStr ? JSON.parse(htmlDomStr) : [];
     const htmlDomInput = `Here is a list of DOM elements to choose from:
-    ${htmlDom.map(minifiedElementToString).join("\n")}`;
+    ${htmlDom.map(minifiedElementToString).join("\n").substring(0, MAX_HTML_DOM_LEN)}`;
     if (LOG_MINIFIED_DOM) {
       const filePath = path.join(process.cwd(), "minified_dom.txt");
       fs.appendFileSync(filePath, htmlDomInput);
       console.log(`Minified DOM saved to ${filePath}`);
     }
 
-    const history = historyStr ? JSON.parse(historyStr) : [];
+    const history: any[][] = historyStr ? JSON.parse(historyStr) : [];
     const prevActions =
       history?.length && history.length > 0
         ? history
-            .map(
-              (action: any, index: number) => `${index + 1}. ${action.summary}`,
+            .reverse()
+            .map((actionBatch, outerIndex) =>
+              actionBatch
+                .reverse()
+                .map(
+                  (action: any, innerIndex: number) =>
+                    `${history.length - outerIndex}.${actionBatch.length - innerIndex}. ${action.summary}`,
+                )
+                .join("\n"),
             )
             .join("\n\n")
         : [];
-    if (LOG_PREV_ACTIONS && prevActions) {
-      console.log("previous actions:\n", prevActions);
+    if (prevActions) {
+      console.log("\nPrevious actions:\n", prevActions);
     }
 
     const { object } = await generateObject({
       model: claudeSonnet,
-      system: `You are a browser agent. Given a userIntent in natural language, and a custom minified DOM tree,
+      system: `You are a browser agent.
+      
+      Given a userIntent in natural language, and a custom minified DOM tree,
       you pick the best action on what to do next in this webpage from a list of possible actions.
       
       An action takes the following form:
@@ -52,14 +62,14 @@ export async function POST(req: Request) {
        | { type: "clarify"; question: string }
        | { type: "click"; idx: number; description: string }
        | {
-        type: "input";
-        idx: number;
-        content: string;
-        withSubmit: boolean;
-        }
+          type: "input";
+          idx: number;
+          content: string;
+          withSubmit: boolean;
+         }
         | { type: "refresh" }
         | { type: "back" }
-        | { type: "done" };
+        | { type: "done"; explanation: string };
       Picking an action, pick the 'idx' of the custom element that you think is likely to be pressed.
 
       For the very first action, you usually wnat to clarify with the user. Ask a descriptive question to confirm with the
@@ -88,9 +98,7 @@ export async function POST(req: Request) {
       You will also receive a sequence of previously attempted actions. These actions are only attempted, and are not guaranteed
       to be completed, so please check from the screenshot to determine whether you need to retry or continue the latest action.
 
-      Here are some things to pay attention to:
-       1. remember that some actions require additional attributes
-       2. look at the previous string of actions! there's a good chance you're already done.
+      Finally, when you feel you're done, just return "done", and a brief conclusion to the user's query.
       `,
       messages: [
         {
@@ -109,11 +117,24 @@ export async function POST(req: Request) {
       schema: chooseActionAndQuerySelectorResponseSchema,
     });
 
-    const actions = object.actions.filter((el) => el.idx !== -1);
+    const actions = filterActions(object);
 
     return new Response(JSON.stringify({ actions }), { status: 200 });
   } catch (err) {
     console.error("chooseAction:", err);
     return new Response(JSON.stringify(err), { status: 500 });
   }
+}
+
+function filterActions(
+  object: z.infer<typeof chooseActionAndQuerySelectorResponseSchema>,
+) {
+  const { actions } = object;
+  if (actions.length === 1 && actions[0]?.type === "done") {
+    return actions;
+  }
+
+  return actions
+    .filter((action) => action.type !== "done")
+    .filter((action) => action.idx !== -1);
 }

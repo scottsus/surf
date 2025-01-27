@@ -1,12 +1,12 @@
+import { Action_v2 } from "@repo/types";
 import { runUntilCompletion } from "@src/lib/agent";
+import { evaluateActions } from "@src/lib/ai/api/evaluate-actions";
 import { summarizeAction } from "@src/lib/ai/api/summarize-action";
 import { ActionMetadata } from "@src/lib/interface/action-metadata";
 import { ExtensionState } from "@src/lib/interface/state";
 import { ThinkingState } from "@src/lib/interface/thinking-state";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-
-import { OverlayState } from "./overlay";
 
 export type CursorCoordinate = {
   x: number;
@@ -125,27 +125,54 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
     setStateTrigger((t) => !t);
   }
 
-  async function getLatestAction() {
+  async function updateUserIntent(intent: string) {
+    const existingState = await loadState();
+    if (!existingState) {
+      throw new Error("updateUserIntent: existings state is null");
+    }
+    const { userIntent } = existingState;
+    const updatedIntent = userIntent + `User clarification: "${intent}"`;
+    await saveState({ ...existingState, userIntent: updatedIntent });
+  }
+
+  async function incrStep() {
+    const existingState = await loadState();
+    if (!existingState) {
+      throw new Error("incrStep: existing state is null");
+    }
+    const { step } = existingState;
+    await saveState({ ...existingState, step: step + 1 });
+  }
+
+  async function getLatestActions() {
     const existingState = await loadState();
     if (!existingState) {
       throw new Error("getLatestAction: existing state is null");
     }
     const { history } = existingState;
-    if (history.length === 0) {
-      return null;
-    }
     return history[history.length - 1];
   }
 
-  async function appendHistory(newAction: ActionMetadata) {
+  async function appendHistory({
+    step,
+    action,
+  }: {
+    step: number;
+    action: ActionMetadata;
+  }) {
     const existingState = await loadState();
     if (!existingState) {
       throw new Error("appendHistory: existing state is null");
     }
-    await saveState({ history: [...existingState.history, newAction] });
+    const latestActions = existingState.history[step] ?? [];
+    latestActions.push(action);
+
+    await saveState({
+      history: [...existingState.history.slice(0, step), latestActions],
+    });
   }
 
-  async function evaluateHistory(success: boolean) {
+  async function applyEvaluations({ evaluation }: { evaluation: boolean[] }) {
     const existingState = await loadState();
     if (!existingState) {
       throw new Error("evaluateHistory: existing state is null");
@@ -154,16 +181,47 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
     if (history.length === 0) {
       return;
     }
-    const latestAction = history[history.length - 1];
-    if (!latestAction) {
+    const latestActions = history[history.length - 1];
+    if (!latestActions) {
+      console.error("latestActions is undefined");
       return;
     }
-    // @TODO: actually evaluate
-    // latestAction.summary = await summarizeAction({
-    //   action: latestAction.action,
-    //   success,
-    // });
-    const newHistory = [...history.slice(0, history.length - 1), latestAction];
+    if (
+      evaluation.length === 0 ||
+      latestActions.length === 0 ||
+      evaluation.length !== latestActions.length
+    ) {
+      console.error(
+        `applyEvaluations: evaluations.length [${evaluation.length}], latestActions.length [${latestActions.length}]`,
+      );
+      return;
+    }
+    const evaluatedActions: ActionMetadata[] = [];
+    for (let i = 0; i < evaluation.length; i++) {
+      const unevaluatedAction = latestActions[i];
+      if (!unevaluatedAction) {
+        continue;
+      }
+
+      const action = unevaluatedAction.action;
+      let evaluatedAction: ActionMetadata = unevaluatedAction;
+      if (action.type !== "clarify") {
+        const evaluatedSummary = await summarizeAction({
+          action: unevaluatedAction.action,
+          success: evaluation[i],
+        });
+        evaluatedAction = {
+          ...unevaluatedAction,
+          summary: evaluatedSummary,
+        };
+      }
+
+      evaluatedActions.push(evaluatedAction);
+    }
+    const newHistory = [
+      ...history.slice(0, history.length - 1),
+      evaluatedActions,
+    ];
     await saveState({ history: newHistory });
   }
 
@@ -200,9 +258,10 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
           clearState,
         },
         historyManager: {
-          getLatestAction,
+          getLatestActions,
           appendHistory,
-          evaluateHistory,
+          applyEvaluations,
+          incrStep,
         },
         setThinkingState,
         clarifyInputRef,

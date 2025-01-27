@@ -16,7 +16,7 @@ import { ComponentType, useEffect, useRef, useState } from "react";
 import { useMajordomo } from "./provider";
 
 const initialPrompt = import.meta.env.DEV
-  ? "Look for a pair of Nikes and add them to cart"
+  ? "Pick 3 consumer grade NVIDIA GPUs, and add them to cart"
   : "";
 
 export function CommandBar() {
@@ -255,8 +255,10 @@ function CustomSuggestions({
   if (suggestions.length === 0) {
     return <></>;
   }
-  setNumCustomSuggestions(suggestions.length);
 
+  useEffect(() => {
+    setNumCustomSuggestions(suggestions.length);
+  }, []);
   return (
     <div className="">
       <h3

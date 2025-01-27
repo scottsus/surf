@@ -1,11 +1,12 @@
-import { MinifiedElement } from "@repo/types/element";
+import { MinifiedElement } from "@repo/types";
 import { CursorCoordinate } from "@src/pages/majordomo/provider";
 import { MutableRefObject } from "react";
 import { toast } from "sonner";
 
+import { evaluateActions } from "../ai/api/evaluate-actions";
 import { summarizeAction } from "../ai/api/summarize-action";
 import { minifyDom } from "../dom/minify-dom";
-import { IS_DEBUGGING } from "../env";
+import { IS_DEBUGGING, USE_AI_EVALS_FOR_PREV_ACTIONS } from "../env";
 import { ActionMetadata, ActionState } from "../interface/action-metadata";
 import { ExtensionState } from "../interface/state";
 import { ThinkingState } from "../interface/thinking-state";
@@ -20,7 +21,7 @@ import {
   takeRefreshAction,
 } from "./actions";
 
-const MAX_RUN_STEPS = 10;
+const MAX_RUN_STEPS = 3;
 
 export async function runUntilCompletion({
   stateManager,
@@ -36,9 +37,20 @@ export async function runUntilCompletion({
     clearState: () => Promise<void>;
   };
   historyManager: {
-    getLatestAction: () => Promise<ActionMetadata | null | undefined>;
-    appendHistory: (newAction: ActionMetadata) => Promise<void | undefined>;
-    evaluateHistory: (success: boolean) => Promise<void | undefined>;
+    getLatestActions: () => Promise<ActionMetadata[] | null | undefined>;
+    appendHistory: ({
+      step,
+      action,
+    }: {
+      step: number;
+      action: ActionMetadata;
+    }) => Promise<void>;
+    incrStep: () => void;
+    applyEvaluations: ({
+      evaluation,
+    }: {
+      evaluation: boolean[];
+    }) => Promise<void>;
   };
   setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
   clarifyInputRef: MutableRefObject<(() => Promise<string>) | null>;
@@ -55,8 +67,9 @@ export async function runUntilCompletion({
     toast.info("state is null");
     return;
   }
-  const { userIntent, history: unevaluatedHistory } = state;
-  const { getLatestAction, appendHistory, evaluateHistory } = historyManager;
+  const { userIntent } = state;
+  const { getLatestActions, appendHistory, applyEvaluations, incrStep } =
+    historyManager;
 
   try {
     let i = 0;
@@ -71,11 +84,16 @@ export async function runUntilCompletion({
 
       const minifiedElements = minifyDom(document.body);
 
-      const latestAction = await getLatestAction();
-      if (latestAction) {
-        // @TODO: evaluate the unevaluatedHistory
-        const success = true;
-        await evaluateHistory(success);
+      const latestActions = await getLatestActions();
+      if (latestActions) {
+        let evaluation = Array(latestActions.length).fill(true);
+        if (USE_AI_EVALS_FOR_PREV_ACTIONS) {
+          evaluation = await evaluateActions({
+            latestActions,
+            minifiedElements,
+          });
+        }
+        applyEvaluations({ evaluation });
       }
 
       const updatedState = await loadState();
@@ -85,10 +103,10 @@ export async function runUntilCompletion({
         );
       }
       const { history } = updatedState;
-      console.log("history:", history);
+      console.log("History:", history);
 
       setThinkingState({ type: "deciding_action" });
-      const { actions } = await generateAction({
+      const actions = await generateAction({
         userIntent,
         minifiedElements,
         history,
@@ -96,7 +114,7 @@ export async function runUntilCompletion({
       if (actions.length === 0) {
         throw new Error("generateAction: no action generated");
       }
-      console.log("actions:", actions);
+      console.log("Actions:", actions);
 
       for (const action of actions) {
         setThinkingState({ type: "action", action });
@@ -182,19 +200,22 @@ export async function runUntilCompletion({
         if (runnable) {
           let userClarification = "";
           const res = await runnable();
-          console.log("res:", res);
           if (res?.userClarification) {
             userClarification = res.userClarification;
           }
           await appendHistory({
-            action,
-            querySelector: "",
-            summary: await summarizeAction({
+            step: updatedState.step,
+            action: {
               action,
-              userInput: userClarification,
-            }),
-            state: ActionState.IN_PROGRESS,
+              querySelector: "",
+              summary: await summarizeAction({
+                action,
+                userInput: userClarification,
+              }),
+              state: ActionState.IN_PROGRESS,
+            },
           });
+          incrStep();
         }
 
         await sleep(500);

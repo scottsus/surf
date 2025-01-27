@@ -1,7 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { Toaster } from "sonner";
 
-import { ClarifyInput } from "./clarify";
 import { CommandBar } from "./command";
 import { Completer } from "./completer";
 import { Cursor } from "./cursor";

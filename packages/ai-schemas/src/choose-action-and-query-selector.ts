@@ -18,6 +18,7 @@ export const chooseActionAndQuerySelectorResponseSchema = z.object({
       description: z.string().optional(),
       content: z.string().optional(),
       withSubmit: z.boolean().optional(),
+      explanation: z.string().optional(),
     }),
   ),
 });

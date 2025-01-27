@@ -5,6 +5,7 @@ let instance: ExtensionStateManager | null = null;
 export class ExtensionStateManager {
   private initialState: ExtensionState = {
     workingTabId: -1,
+    step: 0,
     userIntent: "",
     history: [],
     cursorPosition: { x: 0, y: 0 },
