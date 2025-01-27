@@ -1,24 +1,59 @@
+import { sleep } from "@src/lib/utils";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
 
 import { useMajordomo } from "./provider";
 
-const USE_ANIMATE_PULSE_SHADOW = false;
-
 export enum OverlayState {
   IDLE,
+  CLARIFYING,
   RUNNING,
   EXITING,
 }
+
+const shadowClassname = {
+  [OverlayState.IDLE]: "pointer-events-none",
+  [OverlayState.CLARIFYING]: "backdrop-blur-sm pointer-events-auto",
+  [OverlayState.RUNNING]: "animate-pulse-shadow pointer-events-none",
+  [OverlayState.EXITING]: "animate-static-shadow pointer-events-none",
+};
+
+const boxShadow = {
+  [OverlayState.IDLE]: "",
+  [OverlayState.CLARIFYING]: "inset 0 0 100px 20px rgba(0, 89, 255, 0.3)",
+  [OverlayState.RUNNING]: "inset 0 0 100px 20px rgba(0, 89, 255, 0.3)",
+  [OverlayState.EXITING]: "inset 0 0 100px 20px rgba(0, 128, 0, 0.3)",
+};
 
 export function Overlay({ children }: { children: React.ReactNode }) {
   const {
     currentTabIsWorking,
     loadState,
     stateTrigger,
-    overlayState,
-    setOverlayState,
+    setOverlayBlur,
+    setOverlayExit,
   } = useMajordomo();
+
+  const [overlayState, setOverlayState] = useState<OverlayState>(
+    OverlayState.IDLE,
+  );
+
+  async function overlayBlur(blur: boolean) {
+    if (blur) {
+      setOverlayState(OverlayState.CLARIFYING);
+    } else {
+      setOverlayState(OverlayState.RUNNING);
+    }
+  }
+
+  async function overlayExit() {
+    setOverlayState(OverlayState.EXITING);
+    await sleep(1500);
+  }
+
+  useEffect(() => {
+    setOverlayBlur(overlayBlur);
+    setOverlayExit(overlayExit);
+  });
 
   useEffect(() => {
     loadState().then(async (ext) => {
@@ -37,20 +72,9 @@ export function Overlay({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className={`pointer-events-none fixed inset-0 z-[2147483647] h-screen w-screen ${
-        overlayState !== OverlayState.IDLE
-          ? USE_ANIMATE_PULSE_SHADOW
-            ? "animate-pulse-shadow"
-            : "animate-static-shadow"
-          : ""
-      }`}
+      className={`fixed inset-0 z-[214748364] h-screen w-screen ${shadowClassname[overlayState]}`}
       style={{
-        boxShadow:
-          overlayState !== OverlayState.IDLE
-            ? overlayState === OverlayState.RUNNING
-              ? "inset 0 0 100px 20px rgba(0, 89, 255, 0.3)"
-              : "inset 0 0 100px 20px rgba(0, 128, 0, 0.3)"
-            : "none",
+        boxShadow: boxShadow[overlayState],
       }}
     >
       {children}

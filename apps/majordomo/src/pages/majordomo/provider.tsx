@@ -1,11 +1,9 @@
-import { useRive, useStateMachineInput } from "@rive-app/react-canvas";
 import { runUntilCompletion } from "@src/lib/agent";
 import { summarizeAction } from "@src/lib/ai/api/summarize-action";
 import { ActionMetadata } from "@src/lib/interface/action-metadata";
 import { ExtensionState } from "@src/lib/interface/state";
 import { ThinkingState } from "@src/lib/interface/thinking-state";
-import { sleep } from "@src/lib/utils";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { OverlayState } from "./overlay";
@@ -29,18 +27,14 @@ type MajordomoContextType = {
   setUserIntent: (intent: string) => Promise<void>;
   updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
 
-  overlayState: OverlayState;
-  setOverlayState: React.Dispatch<React.SetStateAction<OverlayState>>;
+  setClarifyInput: (fn: () => Promise<string>) => void;
 
-  RiveComponent: (props: React.ComponentProps<"canvas">) => JSX.Element;
+  setOverlayExit: (fn: () => Promise<void>) => void;
+  setOverlayBlur: (fn: (blur: boolean) => void) => void;
 
-  isClicking: boolean;
+  setPerformClick: (fn: () => void) => void;
   cursorPosition: CursorCoordinate;
   setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
-  cursorPositionEstimate: CursorCoordinate;
-  setCursorPositionEstimate: React.Dispatch<
-    React.SetStateAction<CursorCoordinate>
-  >;
 };
 
 const MajordomoContext = createContext<MajordomoContextType | undefined>(
@@ -48,39 +42,37 @@ const MajordomoContext = createContext<MajordomoContextType | undefined>(
 );
 
 export function MajordomoProvider({ children }: { children: React.ReactNode }) {
+  // Thinking states
   const [stateTrigger, setStateTrigger] = useState(false);
-
   const [thinkingState, setThinkingState] = useState<ThinkingState>({
     type: "idle",
   });
 
+  // Clarify
+  const clarifyInputRef = useRef<(() => Promise<string>) | null>(null);
+  const setClarifyInput = (fn: () => Promise<string>) => {
+    clarifyInputRef.current = fn;
+  };
+
   // Overlay
-  const [overlayState, setOverlayState] = useState<OverlayState>(
-    OverlayState.IDLE,
-  );
+  const overlayBlurRef = useRef<((blur: boolean) => void) | null>(null);
+  const setOverlayBlur = (fn: (blur: boolean) => void) => {
+    overlayBlurRef.current = fn;
+  };
+  const overlayExitRef = useRef<(() => Promise<void>) | null>(null);
+  const setOverlayExit = (fn: () => Promise<void>) => {
+    overlayExitRef.current = fn;
+  };
 
   // Cursor
-  const { rive, RiveComponent } = useRive({
-    src: chrome.runtime.getURL("/cursor.riv"),
-    stateMachines: "State Machine",
-    autoplay: true,
-  });
-  const clickAction = useStateMachineInput(
-    rive,
-    "State Machine",
-    "Click",
-    true,
-  );
-  const [isClicking, setIsClicking] = useState(false);
+  const performClickRef = useRef<(() => void) | null>(null);
+  const setPerformClick = (fn: () => void) => {
+    performClickRef.current = fn;
+  };
   const [cursorPosition, setCursorPosition] = useState<CursorCoordinate>({
     x: window.innerWidth / 2,
     y: window.innerHeight / 2,
   });
-  const [cursorPositionEstimate, setCursorPositionEstimate] =
-    useState<CursorCoordinate>({
-      x: 0,
-      y: 0,
-    });
 
   async function loadState(): Promise<ExtensionState | null> {
     return await new Promise<ExtensionState | null>((resolve) => {
@@ -103,7 +95,10 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function clearState() {
-    await safeExit();
+    const safeExit = overlayExitRef.current;
+    if (safeExit) {
+      await safeExit();
+    }
     setStateTrigger((t) => !t);
     return await new Promise<void>((resolve) => {
       chrome.runtime.sendMessage({ action: "clear_state" }, resolve);
@@ -163,10 +158,11 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
     if (!latestAction) {
       return;
     }
-    latestAction.summary = await summarizeAction({
-      action: latestAction.action,
-      success,
-    });
+    // @TODO: actually evaluate
+    // latestAction.summary = await summarizeAction({
+    //   action: latestAction.action,
+    //   success,
+    // });
     const newHistory = [...history.slice(0, history.length - 1), latestAction];
     await saveState({ history: newHistory });
   }
@@ -179,20 +175,6 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
     return await new Promise<void>((resolve) => {
       chrome.runtime.sendMessage({ action: "abort" }, resolve);
     });
-  }
-
-  async function safeExit() {
-    setOverlayState(OverlayState.EXITING);
-    await sleep(1500);
-  }
-
-  function performClick() {
-    setIsClicking(true);
-    const timeoutId = setTimeout(() => {
-      setIsClicking(false);
-    }, 150);
-
-    return () => clearTimeout(timeoutId);
   }
 
   useEffect(() => {
@@ -223,12 +205,12 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
           evaluateHistory,
         },
         setThinkingState,
+        clarifyInputRef,
+        overlayBlurRef,
         cursorOpts: {
-          clickAction,
-          performClick,
+          performClickRef,
           updateCursorPosition,
           setCursorPosition,
-          setCursorPositionEstimate,
         },
       });
     });
@@ -260,15 +242,13 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
         thinkingState,
         setThinkingState,
         setUserIntent,
-        overlayState,
-        setOverlayState,
-        RiveComponent,
-        isClicking,
+        setClarifyInput,
+        setOverlayBlur,
+        setOverlayExit,
+        setPerformClick,
         updateCursorPosition,
         cursorPosition,
         setCursorPosition,
-        cursorPositionEstimate,
-        setCursorPositionEstimate,
       }}
     >
       {children}

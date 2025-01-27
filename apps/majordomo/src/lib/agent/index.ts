@@ -1,10 +1,11 @@
 import { MinifiedElement } from "@repo/types/element";
-import { StateMachineInput } from "@rive-app/react-canvas";
 import { CursorCoordinate } from "@src/pages/majordomo/provider";
+import { MutableRefObject } from "react";
 import { toast } from "sonner";
 
 import { summarizeAction } from "../ai/api/summarize-action";
 import { minifyDom } from "../dom/minify-dom";
+import { IS_DEBUGGING } from "../env";
 import { ActionMetadata, ActionState } from "../interface/action-metadata";
 import { ExtensionState } from "../interface/state";
 import { ThinkingState } from "../interface/thinking-state";
@@ -12,6 +13,7 @@ import { sleep } from "../utils";
 import {
   generateAction,
   takeBackAction,
+  takeClarifyAction,
   takeClickAction,
   takeInputAction,
   takeNavigateAction,
@@ -24,6 +26,8 @@ export async function runUntilCompletion({
   stateManager,
   historyManager,
   setThinkingState,
+  clarifyInputRef,
+  overlayBlurRef,
   cursorOpts,
 }: {
   stateManager: {
@@ -37,14 +41,12 @@ export async function runUntilCompletion({
     evaluateHistory: (success: boolean) => Promise<void | undefined>;
   };
   setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
+  clarifyInputRef: MutableRefObject<(() => Promise<string>) | null>;
+  overlayBlurRef: MutableRefObject<((blur: boolean) => void) | null>;
   cursorOpts: {
-    clickAction: StateMachineInput | null;
-    performClick: () => void;
+    performClickRef: MutableRefObject<(() => void) | null>;
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
     setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
-    setCursorPositionEstimate: React.Dispatch<
-      React.SetStateAction<CursorCoordinate>
-    >;
   };
 }) {
   const { loadState, clearState } = stateManager;
@@ -60,7 +62,7 @@ export async function runUntilCompletion({
     let i = 0;
     let runInProgress = true;
     let querySelector: string | undefined;
-    let runnable: (() => Promise<void>) | undefined;
+    let runnable: (() => Promise<any>) | undefined;
 
     while (i < MAX_RUN_STEPS && runInProgress) {
       i += 1;
@@ -104,6 +106,14 @@ export async function runUntilCompletion({
               url: action.url,
             });
             runnable = navigateActionResponse.runnable;
+            break;
+
+          case "clarify":
+            const clarifyActionResponse = await takeClarifyAction({
+              clarifyInputRef,
+              overlayBlurRef,
+            });
+            runnable = clarifyActionResponse.runnable;
             break;
 
           case "click":
@@ -170,13 +180,21 @@ export async function runUntilCompletion({
          * be right before this action.
          */
         if (runnable) {
+          let userClarification = "";
+          const res = await runnable();
+          console.log("res:", res);
+          if (res?.userClarification) {
+            userClarification = res.userClarification;
+          }
           await appendHistory({
             action,
             querySelector: "",
-            summary: await summarizeAction({ action }),
+            summary: await summarizeAction({
+              action,
+              userInput: userClarification,
+            }),
             state: ActionState.IN_PROGRESS,
           });
-          await runnable();
         }
 
         await sleep(500);
@@ -198,5 +216,11 @@ function getQuerySelectorFromIndex({
   minifiedElements: MinifiedElement[];
   idx: number;
 }) {
-  return minifiedElements.find((el) => el.idx === idx)?.meta?.querySelector;
+  const querySelector = minifiedElements.find((el) => el.idx === idx)?.meta
+    ?.querySelector;
+  if (IS_DEBUGGING) {
+    console.log(`document.querySelector("${querySelector}")`);
+  }
+
+  return querySelector;
 }

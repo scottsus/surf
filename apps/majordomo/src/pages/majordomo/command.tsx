@@ -1,4 +1,5 @@
 import { useWindowSize } from "@src/hooks/use-window-size";
+import { USE_VOICE_MODE } from "@src/lib/env";
 import { proactiveDomains } from "@src/lib/proactive-domains";
 import {
   CalendarIcon,
@@ -14,12 +15,14 @@ import { ComponentType, useEffect, useRef, useState } from "react";
 
 import { useMajordomo } from "./provider";
 
-const USE_VOICE_MODE = false;
+const initialPrompt = import.meta.env.DEV
+  ? "Look for a pair of Nikes and add them to cart"
+  : "";
 
 export function CommandBar() {
   const { setUserIntent } = useMajordomo();
   const [isVisible, setIsVisible] = useState(false);
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState(initialPrompt);
   const inputRef = useRef<HTMLInputElement>(null);
   const [numCustomSuggestions, setNumCustomSuggestions] = useState(0);
 

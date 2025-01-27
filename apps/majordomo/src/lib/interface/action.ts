@@ -14,6 +14,7 @@ export type Action =
 
 export type Action_v2 =
   | { type: "navigate"; url: string }
+  | { type: "clarify"; question: string }
   | { type: "click"; idx: number; description: string }
   | {
       type: "input";
@@ -29,6 +30,8 @@ export function stringify(action: Action_v2) {
   switch (action.type) {
     case "navigate":
       return `navigating to ${action.url}...`;
+    case "clarify":
+      return `question: ${action.question}`;
     case "click":
       return `clicking "${action.description}"...`;
     case "input":
@@ -38,6 +41,6 @@ export function stringify(action: Action_v2) {
     case "back":
       return "going back";
     case "done":
-      return "finished";
+      return "done!";
   }
 }

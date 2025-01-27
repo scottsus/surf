@@ -4,14 +4,23 @@ import { INCLUDE_ID_IN_QUERY_SELECTOR } from "../env";
 
 export function minifyDom(document: HTMLElement): MinifiedElement[] {
   const minifiedDom: MinifiedElement[] = [];
+  const existingElements = new Set<string>();
 
-  const elements = document.querySelectorAll("*");
+  const elements = Array.from(document.querySelectorAll("*")).concat(
+    Array.from(document.querySelectorAll("iframe")).flatMap((iframe) =>
+      Array.from(iframe.contentDocument?.querySelectorAll("*") || []),
+    ),
+  );
+
   elements.forEach((el, idx) => {
+    const title = el.getAttribute("title");
+    if (title === "credit card number") {
+      console.log("found credit card number!");
+    }
     const role = el.getAttribute("role");
     const type = el.getAttribute("type");
     if (role === "style" || role === "script" || role === "main") return;
     if (
-      (!role && !type) ||
       role === "grid" ||
       role === "table" ||
       role === "contentinfo" ||
@@ -21,15 +30,25 @@ export function minifyDom(document: HTMLElement): MinifiedElement[] {
       role === "tabpanel"
     )
       return;
+
     const rect = el.getBoundingClientRect();
-
-    if (rect.x === 0 && rect.y === 0 && rect.height === 0 && rect.width === 0)
+    if (rect.height === 0 || rect.width === 0) {
       return;
+    }
 
-    const tag = (role || type) as string;
-    let topic =
+    const tag = (role || type || "div") as string;
+    const MAX_TOPIC_LEN = 100;
+    let topic = (
       el.getAttribute("aria-label") ||
-      (el.textContent?.replace(/\s/g, "") as string);
+      el.getAttribute("title") ||
+      (el.textContent?.replace(/\s/g, "") as string)
+    ).substring(0, MAX_TOPIC_LEN);
+    if (title === "credit card number") {
+      console.log("credit card topic:", topic);
+    }
+    if (!topic) {
+      return;
+    }
 
     if (
       el.tagName.toLowerCase() === "input" ||
@@ -40,6 +59,12 @@ export function minifyDom(document: HTMLElement): MinifiedElement[] {
         topic += ` checked="${checked}"`;
       }
     }
+
+    const key = `${tag}-${topic}`;
+    if (existingElements.has(key)) {
+      return;
+    }
+    existingElements.add(key);
 
     const newElement: MinifiedElement = {
       tag,

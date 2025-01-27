@@ -5,9 +5,11 @@ import { Action, Action_v2 } from "@src/lib/interface/action";
  */
 export async function summarizeAction({
   action,
+  userInput,
   success = true,
 }: {
   action: Action_v2;
+  userInput?: string;
   success?: boolean;
 }) {
   const successStatus =
@@ -16,6 +18,8 @@ export async function summarizeAction({
   switch (action.type) {
     case "navigate":
       return `${successStatus} navigate to ${action.url}`;
+    case "clarify":
+      return `clarified ${action.question}; user said ${userInput}`;
     case "click":
       return `${successStatus} click ${action.description}`;
     case "input":
