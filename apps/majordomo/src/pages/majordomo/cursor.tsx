@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ClarifyInput } from "./clarify";
 import { useMajordomo } from "./provider";
 
-const IS_TESTING_UI = process.env.NODE_ENV === "development" && false;
+const IS_TESTING_UI = import.meta.env.DEV && false;
 
 export function Cursor() {
   const { setPerformClick, thinkingState, setThinkingState, cursorPosition } =
@@ -133,12 +133,13 @@ export function Cursor() {
         }}
       >
         <p
-          className="rounded-md text-white"
+          className="rounded-xl text-white"
           style={{
             margin: 0,
             padding: "0.5em 0.75em",
             border: "2px solid #4D6CDB",
             backgroundColor: "#5B7EFF",
+            fontSize: "18px",
           }}
         >
           {stringifyThinkingState()}

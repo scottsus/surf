@@ -1,10 +1,9 @@
-import { MinifiedElement } from "@repo/types";
+import { MinifiedElement, PageOpts } from "@repo/types";
 import { CursorCoordinate } from "@src/pages/majordomo/provider";
 import { MutableRefObject } from "react";
 import { toast } from "sonner";
 
 import { chooseActionAndQuerySelector } from "../ai/api/choose-action-and-query-selector";
-import { USE_WITH_SUBMIT } from "../env";
 import { ActionMetadata } from "../interface/action-metadata";
 import { sleep } from "../utils";
 
@@ -12,15 +11,18 @@ export async function generateAction({
   userIntent,
   minifiedElements,
   history,
+  pageOpts,
 }: {
   userIntent: string;
   minifiedElements: MinifiedElement[];
   history: ActionMetadata[][];
+  pageOpts: PageOpts;
 }) {
   const actionStep = await chooseActionAndQuerySelector({
     userIntent,
     minifiedElements,
     history,
+    pageOpts,
   });
 
   return actionStep;
@@ -115,6 +117,7 @@ export async function takeInputAction({
   content,
   withSubmit,
   cursorOpts,
+  pageOpts,
 }: {
   querySelector: string;
   content: string;
@@ -124,6 +127,7 @@ export async function takeInputAction({
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
     setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
   };
+  pageOpts: PageOpts;
 }): Promise<{
   runnable?: (() => Promise<void>) | undefined;
 }> {
@@ -134,19 +138,10 @@ export async function takeInputAction({
     }
 
     const inputElement = element as HTMLElement;
-    if (
-      inputElement instanceof HTMLInputElement ||
-      inputElement instanceof HTMLTextAreaElement
-    ) {
-      inputElement.value = content;
-    } else if (inputElement.isContentEditable) {
-      inputElement.textContent = content;
-    }
-    if (USE_WITH_SUBMIT) {
-      if (withSubmit) {
-        await sleep(200);
-        inputElement.closest("form")?.submit();
-      }
+    await simulateKeyPress({ input: inputElement, content });
+    if (pageOpts.useWithSubmit && withSubmit) {
+      await sleep(1000);
+      inputElement.closest("form")?.submit();
     }
   };
 
@@ -208,13 +203,22 @@ async function moveToElement({
             clearInterval(intervalId);
 
             timeoutId = setTimeout(async () => {
-              const events = ["mousedown", "mouseup", "click"];
+              const mouseoverEvent = new MouseEvent("mouseover", {
+                bubbles: true,
+                cancelable: true,
+                view: window,
+                clientX: centerX,
+                clientY: centerY,
+              });
+              target.dispatchEvent(mouseoverEvent);
+              await sleep(1000);
+
               const performClick = cursorOpts.performClickRef.current;
               if (performClick) {
                 performClick();
                 await sleep(500);
               }
-
+              const events = ["mousedown", "mouseup", "click"];
               events.forEach((eventType) => {
                 const event = new MouseEvent(eventType, {
                   bubbles: true,
@@ -225,6 +229,7 @@ async function moveToElement({
                 });
                 target.dispatchEvent(event);
               });
+              (target as HTMLElement).click();
 
               resolve(); // this ends the await
             }, 500);
@@ -246,6 +251,72 @@ async function moveToElement({
   } catch (err) {
     console.log(`selector: ${querySelector}, error: ${err}`);
     return { ok: false, element: null };
+  }
+}
+
+async function simulateKeyPress({
+  input,
+  content,
+}: {
+  input: HTMLInputElement | HTMLTextAreaElement | HTMLElement;
+  content: string;
+}) {
+  input.focus();
+  if (
+    input instanceof HTMLInputElement ||
+    input instanceof HTMLTextAreaElement
+  ) {
+    input.value = "";
+  } else if (input.isContentEditable) {
+    input.textContent = "";
+  }
+
+  for (const key of content) {
+    await sleep(50);
+
+    const keydownEvent = new KeyboardEvent("keydown", {
+      key: key,
+      bubbles: true,
+      cancelable: true,
+    });
+    input.dispatchEvent(keydownEvent);
+
+    const keypressEvent = new KeyboardEvent("keypress", {
+      key: key,
+      bubbles: true,
+      cancelable: true,
+    });
+    input.dispatchEvent(keypressEvent);
+
+    if (
+      input instanceof HTMLInputElement ||
+      input instanceof HTMLTextAreaElement
+    ) {
+      input.value += key;
+    } else if (input.isContentEditable) {
+      input.textContent += key;
+    }
+
+    const inputEvent = new Event("input", {
+      bubbles: true,
+      cancelable: true,
+    });
+    input.dispatchEvent(inputEvent);
+
+    const keyupEvent = new KeyboardEvent("keyup", {
+      key: key,
+      bubbles: true,
+      cancelable: true,
+    });
+    input.dispatchEvent(keyupEvent);
+  }
+}
+
+async function pressEnter(inputElement: HTMLElement) {
+  const keyboardEvents = ["keydown", "keyup"];
+  for (const eventName of keyboardEvents) {
+    const event = new KeyboardEvent(eventName, { key: "Enter" });
+    inputElement.dispatchEvent(event);
   }
 }
 

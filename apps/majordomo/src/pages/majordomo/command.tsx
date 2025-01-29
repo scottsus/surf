@@ -10,14 +10,13 @@ import {
   MicIcon,
   ShapesIcon,
   SquareChevronRightIcon,
+  TrophyIcon,
 } from "lucide-react";
 import { ComponentType, useEffect, useRef, useState } from "react";
 
 import { useMajordomo } from "./provider";
 
-const initialPrompt = import.meta.env.DEV
-  ? "Pick 3 consumer grade NVIDIA GPUs, and add them to cart"
-  : "";
+const initialPrompt = import.meta.env.VITE_INITIAL_COMMAND_PROMPT ?? "";
 
 export function CommandBar() {
   const { setUserIntent } = useMajordomo();
@@ -30,12 +29,12 @@ export function CommandBar() {
   const WINDOW_SIZES = {
     width: {
       small: "80vw",
-      medium: "50vw",
+      medium: "44vw",
       wide: "38vw",
     },
     left: {
       small: "40vw",
-      medium: "25vw",
+      medium: "22vw",
       wide: "19vw",
     },
   };
@@ -192,6 +191,12 @@ export function CommandBar() {
             Icon={MailIcon}
             description="Draft an email reply to Calix"
             number={numCustomSuggestions + 3}
+            setters={{ setInputValue, setUserIntent, setIsVisible }}
+          />
+          <Suggestion
+            Icon={TrophyIcon}
+            description="Get me tickets to the Lakers game"
+            number={numCustomSuggestions + 4}
             setters={{ setInputValue, setUserIntent, setIsVisible }}
           />
         </div>

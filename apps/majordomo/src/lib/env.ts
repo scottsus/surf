@@ -24,7 +24,3 @@ export const USE_AI_EVALS_FOR_PREV_ACTIONS = false;
 export const USE_RIVE = false;
 
 export const USE_VOICE_MODE = false;
-
-export const INCLUDE_ID_IN_QUERY_SELECTOR = true;
-
-export const USE_WITH_SUBMIT = true;

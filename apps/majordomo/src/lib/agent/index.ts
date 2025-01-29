@@ -1,4 +1,4 @@
-import { MinifiedElement } from "@repo/types";
+import { getPageOpts, MinifiedElement } from "@repo/types";
 import { CursorCoordinate } from "@src/pages/majordomo/provider";
 import { MutableRefObject } from "react";
 import { toast } from "sonner";
@@ -21,7 +21,7 @@ import {
   takeRefreshAction,
 } from "./actions";
 
-const MAX_RUN_STEPS = 3;
+const MAX_RUN_STEPS = 10;
 
 export async function runUntilCompletion({
   stateManager,
@@ -71,6 +71,8 @@ export async function runUntilCompletion({
   const { getLatestActions, appendHistory, applyEvaluations, incrStep } =
     historyManager;
 
+  const pageOpts = getPageOpts(window.location.href);
+
   try {
     let i = 0;
     let runInProgress = true;
@@ -80,9 +82,12 @@ export async function runUntilCompletion({
     while (i < MAX_RUN_STEPS && runInProgress) {
       i += 1;
       setThinkingState({ type: "awaiting_ui_changes" });
-      await sleep(500);
+      await sleep(1500);
 
-      const minifiedElements = minifyDom(document.body);
+      const minifiedElements = minifyDom({
+        document: document.body,
+        pageOpts,
+      });
 
       const latestActions = await getLatestActions();
       if (latestActions) {
@@ -110,6 +115,7 @@ export async function runUntilCompletion({
         userIntent,
         minifiedElements,
         history,
+        pageOpts,
       });
       if (actions.length === 0) {
         throw new Error("generateAction: no action generated");
@@ -166,6 +172,7 @@ export async function runUntilCompletion({
               content: action.content,
               withSubmit: action.withSubmit,
               cursorOpts,
+              pageOpts,
             });
             runnable = inputActionResponse.runnable;
             break;

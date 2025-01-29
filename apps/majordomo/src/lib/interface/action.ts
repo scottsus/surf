@@ -17,7 +17,7 @@ export function stringify(action: Action_v2) {
     case "navigate":
       return `navigating to ${action.url}...`;
     case "clarify":
-      return `question: ${action.question}`;
+      return `${action.question}`;
     case "click":
       return `clicking "${action.description}"...`;
     case "input":

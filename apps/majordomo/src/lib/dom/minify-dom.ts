@@ -1,8 +1,12 @@
-import { MinifiedElement } from "@repo/types";
+import { MinifiedElement, PageOpts } from "@repo/types";
 
-import { INCLUDE_ID_IN_QUERY_SELECTOR } from "../env";
-
-export function minifyDom(document: HTMLElement): MinifiedElement[] {
+export function minifyDom({
+  document,
+  pageOpts,
+}: {
+  document: HTMLElement;
+  pageOpts: PageOpts;
+}): MinifiedElement[] {
   const minifiedDom: MinifiedElement[] = [];
   const existingElements = new Set<string>();
 
@@ -38,8 +42,10 @@ export function minifyDom(document: HTMLElement): MinifiedElement[] {
 
     const MAX_TOPIC_LEN = 250;
     let topic = (
+      el.getAttribute("href") ||
       el.getAttribute("aria-label") ||
       el.getAttribute("title") ||
+      el.getAttribute("placeholder") ||
       (el.textContent?.replace(/\s/g, "") as string)
     ).substring(0, MAX_TOPIC_LEN);
     if (!topic) {
@@ -69,7 +75,7 @@ export function minifyDom(document: HTMLElement): MinifiedElement[] {
       topic,
       idx,
       meta: {
-        querySelector: getQuerySelector(el),
+        querySelector: getQuerySelector(el, pageOpts.includeIdInQuerySelector),
       },
     };
     minifiedDom.push(newElement);
@@ -78,14 +84,17 @@ export function minifyDom(document: HTMLElement): MinifiedElement[] {
   return minifiedDom;
 }
 
-function getQuerySelector(el: Element): string {
+function getQuerySelector(
+  el: Element,
+  includeIdInQuerySelector: boolean,
+): string {
   const path: string[] = [];
   let current = el;
 
   while (current && current !== document.body) {
     let selector = current.tagName.toLowerCase();
 
-    if (INCLUDE_ID_IN_QUERY_SELECTOR) {
+    if (includeIdInQuerySelector) {
       if (current.id) {
         // special case for ':' like in gmail
         if (current.id.includes(":")) {

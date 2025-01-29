@@ -1,6 +1,4 @@
-import { Action_v2 } from "@repo/types";
 import { runUntilCompletion } from "@src/lib/agent";
-import { evaluateActions } from "@src/lib/ai/api/evaluate-actions";
 import { summarizeAction } from "@src/lib/ai/api/summarize-action";
 import { ActionMetadata } from "@src/lib/interface/action-metadata";
 import { ExtensionState } from "@src/lib/interface/state";

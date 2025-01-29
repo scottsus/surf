@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from "react";
 
 import { useMajordomo } from "./provider";
 
+const initialPrompt = import.meta.env.VITE_INITIAL_CLARIFY_PROMPT ?? "";
+
 export function ClarifyInput() {
   const { setClarifyInput } = useMajordomo();
 
   const [isVisible, setIsVisible] = useState(false);
-  const [inputValue, setInputValue] = useState("");
+  const [inputValue, setInputValue] = useState(initialPrompt);
   const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 

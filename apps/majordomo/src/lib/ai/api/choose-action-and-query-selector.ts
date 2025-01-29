@@ -1,5 +1,5 @@
 import { chooseActionAndQuerySelectorResponseSchema } from "@repo/ai-schemas";
-import { MinifiedElement } from "@repo/types";
+import { MinifiedElement, PageOpts } from "@repo/types";
 import { SERVER_URL } from "@src/lib/env";
 import { Action_v2 } from "@src/lib/interface/action";
 import { ActionMetadata } from "@src/lib/interface/action-metadata";
@@ -9,14 +9,17 @@ export async function chooseActionAndQuerySelector({
   userIntent,
   minifiedElements,
   history,
+  pageOpts,
 }: {
   userIntent: string;
   minifiedElements: MinifiedElement[];
   history: ActionMetadata[][];
+  pageOpts: PageOpts;
 }): Promise<Action_v2[]> {
   try {
     const formData = new FormData();
     formData.append("userIntent", userIntent);
+    formData.append("hostname", pageOpts.hostname);
     formData.append("htmlDom", JSON.stringify(minifiedElements));
     formData.append("history", JSON.stringify(history));
 
