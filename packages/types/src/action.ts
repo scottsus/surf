@@ -1,4 +1,4 @@
-export type Action_v2 =
+export type Action =
   | { type: "navigate"; url: string }
   | { type: "clarify"; question: string }
   | { type: "click"; idx: number; description: string }
@@ -12,7 +12,7 @@ export type Action_v2 =
   | { type: "back" }
   | { type: "done"; explanation: string };
 
-export function stringify(action: Action_v2) {
+export function stringify(action: Action) {
   switch (action.type) {
     case "navigate":
       return `navigating to ${action.url}...`;

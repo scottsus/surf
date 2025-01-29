@@ -1,7 +1,7 @@
 import { chooseActionAndQuerySelectorResponseSchema } from "@repo/ai-schemas";
 import { MinifiedElement, PageOpts } from "@repo/types";
 import { SERVER_URL } from "@src/lib/env";
-import { Action_v2 } from "@src/lib/interface/action";
+import { Action } from "@src/lib/interface/action";
 import { ActionMetadata } from "@src/lib/interface/action-metadata";
 import { z } from "zod";
 
@@ -15,7 +15,7 @@ export async function chooseActionAndQuerySelector({
   minifiedElements: MinifiedElement[];
   history: ActionMetadata[][];
   pageOpts: PageOpts;
-}): Promise<Action_v2[]> {
+}): Promise<Action[]> {
   try {
     const formData = new FormData();
     formData.append("userIntent", userIntent);
@@ -37,7 +37,7 @@ export async function chooseActionAndQuerySelector({
     const data = (await res.json()) as z.infer<
       typeof chooseActionAndQuerySelectorResponseSchema
     >;
-    return data.actions as Action_v2[];
+    return data.actions as Action[];
   } catch (err) {
     console.error("chooseAction:", err);
     return [];

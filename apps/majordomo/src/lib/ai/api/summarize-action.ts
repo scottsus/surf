@@ -1,4 +1,4 @@
-import { Action_v2 } from "@src/lib/interface/action";
+import { Action } from "@src/lib/interface/action";
 
 /**
  * @TODO make AI do this?
@@ -8,7 +8,7 @@ export async function summarizeAction({
   userInput,
   success = true,
 }: {
-  action: Action_v2;
+  action: Action;
   userInput?: string;
   success?: boolean;
 }) {

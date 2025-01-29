@@ -1,10 +1,10 @@
-import { Action_v2 } from "./action";
+import { Action } from "./action";
 
 export type ThinkingState =
   | { type: "idle" }
   | { type: "awaiting_ui_changes" }
   | { type: "deciding_action" }
-  | { type: "action"; action: Action_v2 }
+  | { type: "action"; action: Action }
   | { type: "clicking_button" }
   | { type: "require_assistance" }
   | { type: "aborted" }

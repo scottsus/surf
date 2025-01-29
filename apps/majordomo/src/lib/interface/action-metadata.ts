@@ -1,4 +1,4 @@
-import { Action_v2 } from "./action";
+import { Action } from "./action";
 
 export enum ActionState {
   IN_PROGRESS,
@@ -7,7 +7,7 @@ export enum ActionState {
 }
 
 export type ActionMetadata = {
-  action: Action_v2;
+  action: Action;
   querySelector: string;
   summary: string;
   state: ActionState;
