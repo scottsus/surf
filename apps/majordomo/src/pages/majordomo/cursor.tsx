@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { ClarifyInput } from "./clarify";
 import { useMajordomo } from "./provider";
+import { TakeOver } from "./take-over";
 
 const IS_TESTING_UI = import.meta.env.DEV && false;
 
@@ -85,15 +86,18 @@ export function Cursor() {
   }, [thinkingState]);
 
   return (
-    <div className="z-[2147483647]">
+    <div
+      style={{
+        display:
+          IS_TESTING_UI || thinkingState.type !== "idle" ? "block" : "none",
+        zIndex: 214748364,
+      }}
+    >
       <div
         className="absolute"
         style={{
           left: cursorPosition.x,
           top: cursorPosition.y,
-          display:
-            IS_TESTING_UI || thinkingState.type !== "idle" ? "block" : "none",
-          zIndex: 2147483647,
         }}
       >
         {USE_RIVE ? (
@@ -147,6 +151,15 @@ export function Cursor() {
 
         <ClarifyInput />
       </div>
+
+      <TakeOver
+        show={
+          !(
+            thinkingState.type === "action" &&
+            thinkingState.action.type === "clarify"
+          )
+        }
+      />
     </div>
   );
 }

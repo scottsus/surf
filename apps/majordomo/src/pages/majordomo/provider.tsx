@@ -3,8 +3,17 @@ import { summarizeAction } from "@src/lib/ai/api/summarize-action";
 import { ActionMetadata } from "@src/lib/interface/action-metadata";
 import { ExtensionState } from "@src/lib/interface/state";
 import { ThinkingState } from "@src/lib/interface/thinking-state";
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  MutableRefObject,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { toast } from "sonner";
+
+import { TakeOverState } from "./take-over";
 
 export type CursorCoordinate = {
   x: number;
@@ -14,22 +23,34 @@ export type CursorCoordinate = {
 type MajordomoContextType = {
   currentTabIsWorking: () => Promise<boolean>;
 
+  // Saved states
   loadState: () => Promise<ExtensionState | null>;
   clearState: () => Promise<void>;
-
   stateTrigger: boolean;
 
+  // Thinking states
   thinkingState: ThinkingState;
   setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
 
+  // Visual cues
   setUserIntent: (intent: string) => Promise<void>;
   updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
 
+  // Clarify
   setClarifyInput: (fn: () => Promise<string>) => void;
 
+  // Overlay
   setOverlayExit: (fn: () => Promise<void>) => void;
   setOverlayBlur: (fn: (blur: boolean) => void) => void;
 
+  // Takeover
+  checkTakeOverRef: MutableRefObject<boolean>;
+  setTakeOverRef: (fn: () => Promise<void>) => void;
+  setTakeOverStateRef: MutableRefObject<React.Dispatch<
+    React.SetStateAction<TakeOverState>
+  > | null>;
+
+  // Cursor
   setPerformClick: (fn: () => void) => void;
   cursorPosition: CursorCoordinate;
   setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
@@ -61,6 +82,16 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
   const setOverlayExit = (fn: () => Promise<void>) => {
     overlayExitRef.current = fn;
   };
+
+  // Takeover
+  const checkTakeOverRef = useRef<boolean>(false);
+  const takeOverRef = useRef<(() => Promise<void>) | null>(null);
+  const setTakeOverRef = (fn: () => Promise<void>) => {
+    takeOverRef.current = fn;
+  };
+  const setTakeOverStateRef = useRef<React.Dispatch<
+    React.SetStateAction<TakeOverState>
+  > | null>(null);
 
   // Cursor
   const performClickRef = useRef<(() => void) | null>(null);
@@ -252,8 +283,8 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
       runUntilCompletion({
         stateManager: {
           loadState,
-          saveState,
           clearState,
+          setThinkingState,
         },
         historyManager: {
           getLatestActions,
@@ -261,9 +292,13 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
           applyEvaluations,
           incrStep,
         },
-        setThinkingState,
-        clarifyInputRef,
-        overlayBlurRef,
+        userInputOpts: {
+          clarifyInputRef,
+          overlayBlurRef,
+          checkTakeOverRef,
+          takeOverRef,
+          setTakeOverStateRef,
+        },
         cursorOpts: {
           performClickRef,
           updateCursorPosition,
@@ -302,6 +337,9 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
         setClarifyInput,
         setOverlayBlur,
         setOverlayExit,
+        checkTakeOverRef,
+        setTakeOverRef,
+        setTakeOverStateRef,
         setPerformClick,
         updateCursorPosition,
         cursorPosition,

@@ -1,5 +1,6 @@
 import { getPageOpts, MinifiedElement } from "@repo/types";
 import { CursorCoordinate } from "@src/pages/majordomo/provider";
+import { TakeOverState } from "@src/pages/majordomo/take-over";
 import { MutableRefObject } from "react";
 import { toast } from "sonner";
 
@@ -26,15 +27,13 @@ const MAX_RUN_STEPS = 10;
 export async function runUntilCompletion({
   stateManager,
   historyManager,
-  setThinkingState,
-  clarifyInputRef,
-  overlayBlurRef,
+  userInputOpts,
   cursorOpts,
 }: {
   stateManager: {
     loadState: () => Promise<ExtensionState | null>;
-    saveState: (state: Partial<ExtensionState>) => Promise<void>;
     clearState: () => Promise<void>;
+    setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
   };
   historyManager: {
     getLatestActions: () => Promise<ActionMetadata[] | null | undefined>;
@@ -52,16 +51,22 @@ export async function runUntilCompletion({
       evaluation: boolean[];
     }) => Promise<void>;
   };
-  setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
-  clarifyInputRef: MutableRefObject<(() => Promise<string>) | null>;
-  overlayBlurRef: MutableRefObject<((blur: boolean) => void) | null>;
+  userInputOpts: {
+    clarifyInputRef: MutableRefObject<(() => Promise<string>) | null>;
+    overlayBlurRef: MutableRefObject<((blur: boolean) => void) | null>;
+    checkTakeOverRef: MutableRefObject<boolean>;
+    takeOverRef: MutableRefObject<(() => Promise<void>) | null>;
+    setTakeOverStateRef: MutableRefObject<React.Dispatch<
+      React.SetStateAction<TakeOverState>
+    > | null>;
+  };
   cursorOpts: {
     performClickRef: MutableRefObject<(() => void) | null>;
     updateCursorPosition: (coord: CursorCoordinate) => Promise<void>;
     setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
   };
 }) {
-  const { loadState, clearState } = stateManager;
+  const { loadState, clearState, setThinkingState } = stateManager;
   const state = await loadState();
   if (!state) {
     toast.info("state is null");
@@ -70,7 +75,13 @@ export async function runUntilCompletion({
   const { userIntent } = state;
   const { getLatestActions, appendHistory, applyEvaluations, incrStep } =
     historyManager;
-
+  const {
+    clarifyInputRef,
+    overlayBlurRef,
+    checkTakeOverRef,
+    takeOverRef,
+    setTakeOverStateRef,
+  } = userInputOpts;
   const pageOpts = getPageOpts(window.location.href);
 
   try {
@@ -200,6 +211,26 @@ export async function runUntilCompletion({
         }
 
         /**
+         * check if the user takes over
+         * if so, abort current action, re-evaluate next action
+         */
+        if (checkTakeOverRef.current) {
+          const takeOver = takeOverRef.current;
+          const setTakeOverState = setTakeOverStateRef.current;
+          if (setTakeOverState) {
+            setTakeOverState(TakeOverState.IN_PROGRESS);
+          }
+          if (takeOver) {
+            cursorOpts.setCursorPosition({
+              x: window.innerWidth * 0.6,
+              y: window.innerHeight * 0.75,
+            });
+            await takeOver();
+          }
+          break;
+        }
+
+        /**
          * we do this because a "runnable" has the chance to navigate out of the page
          * resetting the execution context. if there is any cleanup to be done, it should
          * be right before this action.
@@ -223,7 +254,7 @@ export async function runUntilCompletion({
             },
           });
           incrStep();
-        }
+        } // endfor
 
         await sleep(500);
       }
