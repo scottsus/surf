@@ -13,7 +13,7 @@
     "default_icon": {
       "32": "surf.png"
     },
-    "default_popup": "src/pages/popup/index.ts"
+    "default_popup": "src/pages/popup/index.tsx"
   },
   "chrome_url_overrides": {
     "newtab": "src/pages/newtab/index.html"
@@ -22,12 +22,7 @@
     "128": "surf.png"
   },
   "permissions": [
-    "tabs",
-    "tabCapture",
-    "scripting"
-  ],
-  "host_permissions": [
-    "<all_urls>"
+    "tabCapture"
   ],
   "content_scripts": [
     {
