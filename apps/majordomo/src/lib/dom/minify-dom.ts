@@ -46,6 +46,7 @@ export function minifyDom({
       el.getAttribute("aria-label") ||
       el.getAttribute("title") ||
       el.getAttribute("placeholder") ||
+      el.getAttribute("data-testid") ||
       (el.textContent?.replace(/\s/g, "") as string)
     ).substring(0, MAX_TOPIC_LEN);
     if (!topic) {

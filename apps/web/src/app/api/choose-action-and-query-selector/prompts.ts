@@ -1,6 +1,7 @@
 export function constructPrompt(hostname: string) {
   const specificPrompt = hostnamePromptMapping[hostname];
   if (specificPrompt) {
+    console.log(specificPrompt);
     return `${generalPrompt}\n\n${specificPrompt}`;
   }
 
@@ -72,8 +73,21 @@ When at the confirmation page, don't modify any other fields. The name and phone
 "Complete Reservation" and you're done!
 `;
 
+const xPrompt = `For X(Twitter):
+
+The textarea to make a post is tricky. Particularly if the user wants to make a new post:
+ 1. you can choose only ONE action at a time. this is VERY IMPORTANT!
+ 2. don't choose the "Post" element to compose a post; instead pick the "Post Text" element and type in the input straight away
+ 3. if you already chose an input action, do NOT choose a click action.
+ 4. only if an input action was successfully done in 'Previous Actions" should you pick the click action to post the tweet here
+ 5. only then choose the button with topic "tweetButtonInline"
+
+X is particularly tricky. Remember, only ONE ACTION IS ALLOWED!
+`;
+
 const hostnamePromptMapping: { [hostname: string]: string } = {
   "amazon.com": amazonPrompt,
   "mail.google.com": gmailPrompt,
   "opentable.com": opentablePrompt,
+  "x.com": xPrompt,
 };

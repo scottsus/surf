@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { chooseActionAndQuerySelector } from "../ai/api/choose-action-and-query-selector";
 import { ActionMetadata } from "../interface/action-metadata";
 import { sleep } from "../utils";
+import { fillInput } from "./keyboard";
 
 export async function generateAction({
   userIntent,
@@ -138,7 +139,7 @@ export async function takeInputAction({
     }
 
     const inputElement = element as HTMLElement;
-    await simulateKeyPress({ input: inputElement, content });
+    await fillInput({ input: inputElement, content });
     if (pageOpts.useWithSubmit && withSubmit) {
       await sleep(1000);
       inputElement.closest("form")?.submit();
@@ -182,7 +183,7 @@ async function moveToElement({
   try {
     const target = document.querySelector(querySelector);
     if (!target) {
-      toast.error("no element found");
+      toast.error(`unable to find: ${querySelector}`);
       return { ok: false, element: null };
     }
 
@@ -191,8 +192,8 @@ async function moveToElement({
     const centerY = rect.top + rect.height / 2;
     let newCoords: CursorCoordinate = { x: 0, y: 0 };
 
-    let timeoutId: NodeJS.Timeout;
-    let intervalId: NodeJS.Timeout;
+    let timeoutId: NodeJS.Timeout | undefined;
+    let intervalId: NodeJS.Timeout | undefined;
     await new Promise<void>((resolve) => {
       const intervalId = setInterval(async () => {
         cursorOpts.setCursorPosition((prev) => {
@@ -242,7 +243,7 @@ async function moveToElement({
     });
 
     const cleanup = () => {
-      clearInterval(intervalId);
+      if (intervalId) clearInterval(intervalId);
       if (timeoutId) clearTimeout(timeoutId);
     };
     window.addEventListener("error", cleanup);
@@ -251,72 +252,6 @@ async function moveToElement({
   } catch (err) {
     console.log(`selector: ${querySelector}, error: ${err}`);
     return { ok: false, element: null };
-  }
-}
-
-async function simulateKeyPress({
-  input,
-  content,
-}: {
-  input: HTMLInputElement | HTMLTextAreaElement | HTMLElement;
-  content: string;
-}) {
-  input.focus();
-  if (
-    input instanceof HTMLInputElement ||
-    input instanceof HTMLTextAreaElement
-  ) {
-    input.value = "";
-  } else if (input.isContentEditable) {
-    input.textContent = "";
-  }
-
-  for (const key of content) {
-    await sleep(50);
-
-    const keydownEvent = new KeyboardEvent("keydown", {
-      key: key,
-      bubbles: true,
-      cancelable: true,
-    });
-    input.dispatchEvent(keydownEvent);
-
-    const keypressEvent = new KeyboardEvent("keypress", {
-      key: key,
-      bubbles: true,
-      cancelable: true,
-    });
-    input.dispatchEvent(keypressEvent);
-
-    if (
-      input instanceof HTMLInputElement ||
-      input instanceof HTMLTextAreaElement
-    ) {
-      input.value += key;
-    } else if (input.isContentEditable) {
-      input.textContent += key;
-    }
-
-    const inputEvent = new Event("input", {
-      bubbles: true,
-      cancelable: true,
-    });
-    input.dispatchEvent(inputEvent);
-
-    const keyupEvent = new KeyboardEvent("keyup", {
-      key: key,
-      bubbles: true,
-      cancelable: true,
-    });
-    input.dispatchEvent(keyupEvent);
-  }
-}
-
-async function pressEnter(inputElement: HTMLElement) {
-  const keyboardEvents = ["keydown", "keyup"];
-  for (const eventName of keyboardEvents) {
-    const event = new KeyboardEvent(eventName, { key: "Enter" });
-    inputElement.dispatchEvent(event);
   }
 }
 
