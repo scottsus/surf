@@ -4,6 +4,7 @@
  * This will screencast working tab into active tab.
  */
 
+import { XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export function Pip() {
@@ -55,6 +56,18 @@ export function Pip() {
       }}
     >
       <video ref={videoRef} autoPlay className="w-full rounded-md" />
+      <div
+        className="absolute flex"
+        style={{
+          zIndex: 20,
+          top: "1rem",
+          right: "1rem",
+          cursor: "pointer",
+        }}
+        onClick={() => setShowPip(false)}
+      >
+        <XIcon color="white" />
+      </div>
     </div>
   );
 }
