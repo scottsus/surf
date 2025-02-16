@@ -111,6 +111,17 @@ function getQuerySelector(
       }
     }
 
+    if (current.parentElement) {
+      const siblings = Array.from(current.parentElement.children);
+      const sameTagSiblings = siblings.filter(
+        (sibling) => sibling.tagName === current.tagName,
+      );
+      if (sameTagSiblings.length > 1) {
+        const index = sameTagSiblings.indexOf(current) + 1;
+        selector += `:nth-of-type(${index})`;
+      }
+    }
+
     if (current.className) {
       try {
         const cleanedClasses = current.className
