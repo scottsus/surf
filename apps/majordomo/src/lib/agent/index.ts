@@ -32,7 +32,8 @@ export async function runUntilCompletion({
 }: {
   stateManager: {
     loadState: () => Promise<ExtensionState | null>;
-    clearState: () => Promise<void>;
+    clearState: (expl: string) => Promise<void>;
+    errorState: (error: string) => Promise<void>;
     setThinkingState: React.Dispatch<React.SetStateAction<ThinkingState>>;
   };
   historyManager: {
@@ -66,7 +67,7 @@ export async function runUntilCompletion({
     setCursorPosition: React.Dispatch<React.SetStateAction<CursorCoordinate>>;
   };
 }) {
-  const { loadState, clearState, setThinkingState } = stateManager;
+  const { loadState, clearState, errorState, setThinkingState } = stateManager;
   const state = await loadState();
   if (!state) {
     toast.info("state is null");
@@ -200,7 +201,7 @@ export async function runUntilCompletion({
 
           case "done":
             runnable = undefined;
-            await clearState();
+            await clearState(action.explanation);
             setThinkingState({ type: "done" });
             runInProgress = false;
             break;
@@ -264,7 +265,9 @@ export async function runUntilCompletion({
       setThinkingState({ type: "require_assistance" });
     }
   } catch (err) {
-    console.error("runUntilCompletion:", err);
+    const errorMessage = err as string;
+    await errorState(errorMessage);
+    setThinkingState({ type: "error", errorMessage });
   }
 }
 

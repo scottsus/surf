@@ -25,7 +25,8 @@ type MajordomoContextType = {
 
   // Saved states
   loadState: () => Promise<ExtensionState | null>;
-  clearState: () => Promise<void>;
+  clearState: (expl: string) => Promise<void>;
+  errorState: (error: string) => Promise<void>;
   stateTrigger: boolean;
 
   // Thinking states
@@ -40,8 +41,9 @@ type MajordomoContextType = {
   setClarifyInput: (fn: () => Promise<string>) => void;
 
   // Overlay
-  setOverlayExit: (fn: () => Promise<void>) => void;
   setOverlayBlur: (fn: (blur: boolean) => void) => void;
+  setOverlayExit: (fn: (expl: string) => Promise<void>) => void;
+  setOverlayError: (fn: () => Promise<void>) => void;
 
   // Takeover
   checkTakeOverRef: MutableRefObject<boolean>;
@@ -78,9 +80,13 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
   const setOverlayBlur = (fn: (blur: boolean) => void) => {
     overlayBlurRef.current = fn;
   };
-  const overlayExitRef = useRef<(() => Promise<void>) | null>(null);
-  const setOverlayExit = (fn: () => Promise<void>) => {
+  const overlayExitRef = useRef<((expl: string) => Promise<void>) | null>(null);
+  const setOverlayExit = (fn: (expl: string) => Promise<void>) => {
     overlayExitRef.current = fn;
+  };
+  const overlayErrorRef = useRef<(() => Promise<void>) | null>(null);
+  const setOverlayError = (fn: () => Promise<void>) => {
+    overlayErrorRef.current = fn;
   };
 
   // Takeover
@@ -123,15 +129,24 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
     });
   }
 
-  async function clearState() {
+  async function clearState(explanation: string) {
     const safeExit = overlayExitRef.current;
     if (safeExit) {
-      await safeExit();
+      await safeExit(explanation);
     }
     setStateTrigger((t) => !t);
     return await new Promise<void>((resolve) => {
       chrome.runtime.sendMessage({ action: "clear_state" }, resolve);
     });
+  }
+
+  async function errorState(error: string) {
+    const declareError = overlayErrorRef.current;
+    if (declareError) {
+      await declareError();
+    }
+    const state = await loadState();
+    await saveState({ ...state, error });
   }
 
   async function getCurrentTabId(): Promise<number> {
@@ -284,6 +299,7 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
         stateManager: {
           loadState,
           clearState,
+          errorState,
           setThinkingState,
         },
         historyManager: {
@@ -330,6 +346,7 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
         currentTabIsWorking,
         loadState,
         clearState,
+        errorState,
         stateTrigger,
         thinkingState,
         setThinkingState,
@@ -337,6 +354,7 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
         setClarifyInput,
         setOverlayBlur,
         setOverlayExit,
+        setOverlayError,
         checkTakeOverRef,
         setTakeOverRef,
         setTakeOverStateRef,

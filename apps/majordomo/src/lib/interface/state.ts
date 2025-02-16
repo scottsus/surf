@@ -8,4 +8,5 @@ export type ExtensionState = {
   userIntent: string;
   history: ActionMetadata[][];
   cursorPosition: CursorCoordinate;
+  error?: string;
 };

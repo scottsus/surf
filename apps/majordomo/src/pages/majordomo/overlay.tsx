@@ -8,6 +8,7 @@ export enum OverlayState {
   CLARIFYING,
   RUNNING,
   EXITING,
+  ERROR,
 }
 
 const shadowClassname = {
@@ -15,6 +16,7 @@ const shadowClassname = {
   [OverlayState.CLARIFYING]: "backdrop-blur-sm pointer-events-auto",
   [OverlayState.RUNNING]: "animate-pulse-shadow pointer-events-none",
   [OverlayState.EXITING]: "animate-static-shadow pointer-events-none",
+  [OverlayState.ERROR]: "animate-static-shadow pointer-events-none",
 };
 
 const boxShadow = {
@@ -22,6 +24,7 @@ const boxShadow = {
   [OverlayState.CLARIFYING]: "inset 0 0 100px 20px rgba(0, 89, 255, 0.3)",
   [OverlayState.RUNNING]: "inset 0 0 100px 20px rgba(0, 89, 255, 0.3)",
   [OverlayState.EXITING]: "inset 0 0 100px 20px rgba(0, 128, 0, 0.3)",
+  [OverlayState.ERROR]: "inset 0 0 100px 20px rgba(255, 0, 0, 0.3)",
 };
 
 export function Overlay({ children }: { children: React.ReactNode }) {
@@ -31,6 +34,7 @@ export function Overlay({ children }: { children: React.ReactNode }) {
     stateTrigger,
     setOverlayBlur,
     setOverlayExit,
+    setOverlayError,
   } = useMajordomo();
 
   const [overlayState, setOverlayState] = useState<OverlayState>(
@@ -45,24 +49,43 @@ export function Overlay({ children }: { children: React.ReactNode }) {
     }
   }
 
-  async function overlayExit() {
+  async function overlayExit(expl: string) {
     setOverlayState(OverlayState.EXITING);
-    await sleep(1500);
+    const MIN_EXIT_TIME = 2_000;
+    const MAX_EXIT_TIME = 10_000;
+    const duration = Math.min(
+      Math.max(expl.length * 30, MIN_EXIT_TIME),
+      MAX_EXIT_TIME,
+    );
+    await sleep(duration);
+  }
+
+  async function overlayError() {
+    setOverlayState(OverlayState.ERROR);
   }
 
   useEffect(() => {
     setOverlayBlur(overlayBlur);
     setOverlayExit(overlayExit);
-  });
+    setOverlayError(overlayError);
+  }, []);
 
   useEffect(() => {
     loadState().then(async (ext) => {
+      if (!ext) {
+        return;
+      }
       if (!(await currentTabIsWorking())) {
         setOverlayState(OverlayState.IDLE);
         return;
       }
 
-      if (ext?.userIntent) {
+      if (ext.error) {
+        setOverlayState(OverlayState.ERROR);
+        return;
+      }
+
+      if (ext.userIntent) {
         setOverlayState(OverlayState.RUNNING);
       } else {
         setOverlayState(OverlayState.IDLE);

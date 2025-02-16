@@ -1,6 +1,6 @@
 import { useRive, useStateMachineInput } from "@rive-app/react-canvas";
 import { USE_RIVE } from "@src/lib/env";
-import { stringify } from "@src/lib/interface/action";
+import { stringifyThinkingState } from "@src/lib/interface/thinking-state";
 import { useCallback, useEffect, useState } from "react";
 
 import { ClarifyInput } from "./clarify";
@@ -27,25 +27,8 @@ export function Cursor() {
     true,
   );
 
-  const stringifyThinkingState = useCallback(() => {
-    switch (thinkingState.type) {
-      case "idle":
-        return "ready";
-      case "awaiting_ui_changes":
-        return "awaiting UI changes...";
-      case "deciding_action":
-        return "deciding on next action...";
-      case "action":
-        return stringify(thinkingState.action);
-      case "clicking_button":
-        return "choosing the right button...";
-      case "require_assistance":
-        return "unable to complete task - require assistance";
-      case "aborted":
-        return "aborted!";
-      case "done":
-        return "done!";
-    }
+  const stringify = useCallback(() => {
+    return stringifyThinkingState(thinkingState);
   }, [thinkingState]);
 
   function performClick() {
@@ -146,7 +129,7 @@ export function Cursor() {
             fontSize: "18px",
           }}
         >
-          {stringifyThinkingState()}
+          {stringify()}
         </p>
 
         <ClarifyInput />
@@ -157,7 +140,7 @@ export function Cursor() {
           !(
             thinkingState.type === "action" &&
             thinkingState.action.type === "clarify"
-          )
+          ) && !(thinkingState.type === "error")
         }
       />
     </div>
