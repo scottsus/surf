@@ -13,7 +13,7 @@
     "default_icon": {
       "32": "surf.png"
     },
-    "default_popup": "src/pages/popup/index.tsx"
+    "default_popup": "src/pages/popup/index.html"
   },
   "chrome_url_overrides": {
     "newtab": "src/pages/newtab/index.html"

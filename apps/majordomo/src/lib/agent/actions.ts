@@ -212,7 +212,7 @@ async function moveToElement({
                 clientY: centerY,
               });
               target.dispatchEvent(mouseoverEvent);
-              await sleep(1000);
+              await sleep(500);
 
               const performClick = cursorOpts.performClickRef.current;
               if (performClick) {

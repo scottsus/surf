@@ -1,4 +1,5 @@
 import { useRive, useStateMachineInput } from "@rive-app/react-canvas";
+import { ShimmerText } from "@src/components/shimmer-text";
 import { USE_RIVE } from "@src/lib/env";
 import { stringifyThinkingState } from "@src/lib/interface/thinking-state";
 import { useCallback, useEffect, useState } from "react";
@@ -98,7 +99,7 @@ export function Cursor() {
             width={60}
             height={60}
             style={{
-              transition: "all 0.2s",
+              transition: "all 0.05s",
               transform: isClicking
                 ? "translate(-10px, -10px) scale(0.85)"
                 : "none",
@@ -119,18 +120,23 @@ export function Cursor() {
           rowGap: "0.75rem",
         }}
       >
-        <p
-          className="rounded-xl text-white"
+        <div
+          className="rounded-xl"
           style={{
-            margin: 0,
-            padding: "0.5em 0.75em",
+            marginTop: "0.6em",
+            padding: "0 0.75em",
             border: "2px solid #4D6CDB",
             backgroundColor: "#5B7EFF",
             fontSize: "18px",
           }}
         >
-          {stringify()}
-        </p>
+          {thinkingState.type === "action" &&
+          thinkingState.action.type === "clarify" ? (
+            <p>{stringify()}</p>
+          ) : (
+            <ShimmerText text={stringify()} />
+          )}
+        </div>
 
         <ClarifyInput />
       </div>
