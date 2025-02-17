@@ -130,8 +130,9 @@ export function Cursor() {
             fontSize: "18px",
           }}
         >
-          {thinkingState.type === "action" &&
-          thinkingState.action.type === "clarify" ? (
+          {(thinkingState.type === "action" &&
+            thinkingState.action.type === "clarify") ||
+          thinkingState.type === "done" ? (
             <p>{stringify()}</p>
           ) : (
             <ShimmerText text={stringify()} />
