@@ -23,6 +23,6 @@ export async function completeSentence({
     >;
     return data;
   } catch (err) {
-    console.error("estimateElementLocation:", err);
+    console.error("completeSentence:", err);
   }
 }

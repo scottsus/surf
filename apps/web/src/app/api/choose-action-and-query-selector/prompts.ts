@@ -1,7 +1,8 @@
+const LOG_SPECIFIC_PROMPT = process.env.NODE_ENV === "development" && false;
+
 export function constructPrompt(hostname: string) {
   const specificPrompt = hostnamePromptMapping[hostname];
-  if (specificPrompt) {
-    console.log(specificPrompt);
+  if (LOG_SPECIFIC_PROMPT && specificPrompt) {
     return `${generalPrompt}\n\n${specificPrompt}`;
   }
 

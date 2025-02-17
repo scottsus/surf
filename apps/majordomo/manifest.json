@@ -39,8 +39,7 @@
     {
       "resources": [
         "surf.png",
-        "cursor.svg",
-        "cursor.riv"
+        "cursor.svg"
       ],
       "matches": [
         "<all_urls>"

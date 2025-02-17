@@ -16,7 +16,7 @@ export function Cursor() {
   const [isClicking, setIsClicking] = useState(false);
 
   const { rive, RiveComponent } = useRive({
-    src: chrome.runtime.getURL("/cursor.riv"),
+    src: chrome.runtime.getURL("/rive/cursor.riv"),
     stateMachines: "State Machine",
     autoplay: true,
   });
