@@ -28,6 +28,19 @@ const contentScriptStyles = document.createElement("style");
 shadowRoot.append(contentScriptStyles);
 contentScriptStyles.textContent = styles;
 
+const fontPath = "/fonts/TWKLausanne-400.ttf";
+const fontUrl = chrome.runtime.getURL(fontPath);
+const fontStyle = document.createElement("style");
+fontStyle.textContent = `
+  @font-face {
+    font-family: "TWK_Lausanne";
+    src: url(${fontUrl}) format("truetype");
+    font-weight: normal;
+    font-style: normal;
+  }
+`;
+document.head.appendChild(fontStyle);
+
 const toastElement = document.createElement("div");
 document.body.appendChild(toastElement);
 const toastRoot = createRoot(toastElement);
@@ -48,7 +61,7 @@ const root = createRoot(appElement);
 root.render(
   <div
     style={{
-      fontFamily: "sans-serif",
+      fontFamily: "TWK_Lausanne, sans-serif",
     }}
   >
     <style type="text/css">{styles.toString()}</style>
