@@ -131,9 +131,10 @@ export function Cursor() {
           }}
         >
           {(thinkingState.type === "action" &&
-            thinkingState.action.type === "clarify") ||
+            (thinkingState.action.type === "clarify" ||
+              thinkingState.action.type === "done")) ||
           thinkingState.type === "done" ? (
-            <p>{stringify()}</p>
+            <p style={{ color: "white" }}>{stringify()}</p>
           ) : (
             <ShimmerText text={stringify()} />
           )}
