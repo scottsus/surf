@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 
 import { useMajordomo } from "./provider";
 
-const initialPrompt = import.meta.env.VITE_INITIAL_CLARIFY_PROMPT ?? "";
+const { DEV, VITE_INITIAL_CLARIFY_PROMPT } = import.meta.env;
+
+const initialPrompt = DEV ? VITE_INITIAL_CLARIFY_PROMPT : "";
 
 export function ClarifyInput() {
   const { setClarifyInput } = useMajordomo();

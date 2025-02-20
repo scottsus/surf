@@ -16,7 +16,9 @@ import { ComponentType, useEffect, useRef, useState } from "react";
 
 import { useMajordomo } from "./provider";
 
-const initialPrompt = import.meta.env.VITE_INITIAL_COMMAND_PROMPT ?? "";
+const { DEV, VITE_INITIAL_COMMAND_PROMPT } = import.meta.env;
+
+const initialPrompt = DEV ? VITE_INITIAL_COMMAND_PROMPT : "";
 
 export function CommandBar() {
   const { setUserIntent } = useMajordomo();

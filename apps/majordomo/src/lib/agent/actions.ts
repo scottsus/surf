@@ -4,6 +4,7 @@ import { MutableRefObject } from "react";
 import { toast } from "sonner";
 
 import { chooseActionAndQuerySelector } from "../ai/api/choose-action-and-query-selector";
+import { USE_DOUBLE_CLICK } from "../env";
 import { ActionMetadata } from "../interface/action-metadata";
 import { sleep } from "../utils";
 import { fillInput } from "./keyboard";
@@ -230,7 +231,9 @@ async function moveToElement({
                 });
                 target.dispatchEvent(event);
               });
-              (target as HTMLElement).click();
+              if (USE_DOUBLE_CLICK) {
+                (target as HTMLElement).click();
+              }
 
               resolve(); // this ends the await
             }, 500);
