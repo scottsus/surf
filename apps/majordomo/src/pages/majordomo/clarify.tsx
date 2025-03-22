@@ -56,7 +56,7 @@ export function ClarifyInput() {
       className="rounded-full"
       ref={formRef}
       style={{
-        width: "97%",
+        width: "94%",
         padding: "0 1rem",
         backgroundColor: "white",
         border: "1px solid #D6DFFF",

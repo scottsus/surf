@@ -45,7 +45,8 @@ been answered - look for 'User said: xxx".
 
 If there is a modal, you HAVE TO CLOSE THE MODAL FIRST. Modals are very annoying, so make sure to close them if you see them.
 
-Finally, when you feel you're done, just return "done", and a brief conclusion to the user's query.
+Finally, when you feel you're done, just return "done", and a brief conclusion to the user's query. When this happens,
+return the explanation in valid markdown.
 `;
 
 const amazonPrompt = `For Amazon:

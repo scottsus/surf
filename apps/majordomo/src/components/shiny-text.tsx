@@ -1,4 +1,4 @@
-export function ShimmerText({
+export function ShinyText({
   text,
   color = "#C0C0C0",
 }: {

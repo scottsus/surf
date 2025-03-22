@@ -51,13 +51,16 @@ export function Overlay({ children }: { children: React.ReactNode }) {
 
   async function overlayExit(expl: string) {
     setOverlayState(OverlayState.EXITING);
-    const MIN_EXIT_TIME = 2_000;
-    const MAX_EXIT_TIME = 10_000;
-    const duration = Math.min(
-      Math.max(expl.length * 30, MIN_EXIT_TIME),
-      MAX_EXIT_TIME,
-    );
-    await sleep(duration);
+    await new Promise((res) => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") {
+          document.removeEventListener("keydown", handleKeyDown);
+          res(null);
+        }
+      };
+
+      document.addEventListener("keydown", handleKeyDown);
+    });
   }
 
   async function overlayError() {

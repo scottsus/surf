@@ -1,10 +1,11 @@
 import { useRive, useStateMachineInput } from "@rive-app/react-canvas";
-import { ShimmerText } from "@src/components/shimmer-text";
+import { ShinyText } from "@src/components/shiny-text";
 import { USE_RIVE } from "@src/lib/env";
 import { stringifyThinkingState } from "@src/lib/interface/thinking-state";
 import { useCallback, useEffect, useState } from "react";
 
 import { ClarifyInput } from "./clarify";
+import { Markdown } from "./markdown";
 import { useMajordomo } from "./provider";
 import { TakeOver } from "./take-over";
 
@@ -15,6 +16,7 @@ export function Cursor() {
     useMajordomo();
 
   const [isClicking, setIsClicking] = useState(false);
+  const [maxHeight, setMaxHeight] = useState<number>();
 
   const { rive, RiveComponent } = useRive({
     src: chrome.runtime.getURL("/rive/cursor.riv"),
@@ -49,6 +51,24 @@ export function Cursor() {
   useEffect(() => {
     setPerformClick(performClick);
   }, []);
+
+  useEffect(() => {
+    const calculateMaxHeight = () => {
+      const windowHeight = window.innerHeight;
+      const cursorY = cursorPosition.y;
+
+      const PADDING = 40;
+      const availableHeight = windowHeight - cursorY - PADDING;
+      setMaxHeight(availableHeight > 0 ? availableHeight : undefined);
+    };
+
+    calculateMaxHeight();
+    window.addEventListener("resize", calculateMaxHeight);
+
+    return () => {
+      window.removeEventListener("resize", calculateMaxHeight);
+    };
+  }, [cursorPosition.y]);
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
@@ -121,22 +141,26 @@ export function Cursor() {
         }}
       >
         <div
-          className="rounded-xl"
+          className="hide-scrollbar rounded-xl"
           style={{
             marginTop: "0.6em",
             padding: "0 0.75em",
-            border: "2px solid #4D6CDB",
-            backgroundColor: "#5B7EFF",
+            border: "3px solid white",
+            backgroundColor: "#060606",
             fontSize: "18px",
+            maxHeight: maxHeight,
+            overflowY: maxHeight ? "scroll" : "visible",
+            pointerEvents: "all",
+            color: "white",
           }}
         >
           {(thinkingState.type === "action" &&
             (thinkingState.action.type === "clarify" ||
               thinkingState.action.type === "done")) ||
           thinkingState.type === "done" ? (
-            <p style={{ color: "white" }}>{stringify()}</p>
+            <Markdown content={stringify()} />
           ) : (
-            <ShimmerText text={stringify()} />
+            <ShinyText text={stringify()} />
           )}
         </div>
 
@@ -148,7 +172,12 @@ export function Cursor() {
           !(
             thinkingState.type === "action" &&
             thinkingState.action.type === "clarify"
-          ) && !(thinkingState.type === "error")
+          ) &&
+          !(
+            thinkingState.type === "action" &&
+            thinkingState.action.type === "done"
+          ) &&
+          !(thinkingState.type === "error")
         }
       />
     </div>
