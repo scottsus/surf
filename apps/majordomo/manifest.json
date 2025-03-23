@@ -29,7 +29,7 @@
   ],
   "host_permissions": [
     "http://localhost/*",
-    "https://clerk.surf.scottsus.dev/"
+    "https://clerk.surf.scottsus.dev/*"
   ],
   "content_scripts": [
     {
