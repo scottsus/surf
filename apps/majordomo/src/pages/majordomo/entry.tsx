@@ -1,3 +1,4 @@
+import { ClerkProvider } from "@clerk/chrome-extension";
 import { createRoot } from "react-dom/client";
 import { Toaster } from "sonner";
 
@@ -44,6 +45,9 @@ toastRoot.render(
   />,
 );
 
+const { VITE_CLERK_PUBLISHABLE_KEY } = import.meta.env;
+const EXTENSION_URL = chrome.runtime.getURL(".");
+
 const root = createRoot(appElement);
 root.render(
   <div
@@ -52,13 +56,15 @@ root.render(
     }}
   >
     <style type="text/css">{styles.toString()}</style>
-    <MajordomoProvider>
-      <Overlay>
-        <CommandBar />
-        <Pip />
-        <Cursor />
-        <Completer />
-      </Overlay>
-    </MajordomoProvider>
+    <ClerkProvider publishableKey={VITE_CLERK_PUBLISHABLE_KEY}>
+      <MajordomoProvider>
+        <Overlay>
+          <CommandBar />
+          <Pip />
+          <Cursor />
+          <Completer />
+        </Overlay>
+      </MajordomoProvider>
+    </ClerkProvider>
   </div>,
 );

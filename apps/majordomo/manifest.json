@@ -1,5 +1,6 @@
 {
   "manifest_version": 3,
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqRk8B4r26uecJD53G4wOCT17KlT8B3OCMnOX/HK3VqZ9QimXcFbxZWwpPiIXw5pwP3unKdp6cABbMPsxgd4LSvJUfnfDxI6AgXvfZurtVRFBWZmMFh2TAt1rREA4PQC9QyQpa9aJ/kl5uPqPx6/eZ0Q+W3CV4cDVkp5KseqGjTP9Y7kvUeoC4U/8/ExmcqD9DRw2rwuxUG2qwdcUq08QrkJE087PGIemsc9guXIpx2v6fcVBkoimFpAg68PH8y/n75RNE6+zhDZVey8j/cSXLNLoPF1JgR7rcwrT+eyCDytjSlnlo3lsFmbgSl1t3LdBBu1HqsdkqChFCijTFx6kOQIDAQAB",
   "name": "Surf",
   "description": "Equip your browser with AI superpowers",
   "options_ui": {
@@ -22,7 +23,13 @@
     "128": "surf.png"
   },
   "permissions": [
-    "tabCapture"
+    "cookies",
+    "tabCapture",
+    "storage"
+  ],
+  "host_permissions": [
+    "http://localhost/*",
+    "https://clerk.surf.scottsus.dev/"
   ],
   "content_scripts": [
     {
