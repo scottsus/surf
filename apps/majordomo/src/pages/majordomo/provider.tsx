@@ -1,6 +1,8 @@
+import { useAuthState } from "@src/hooks/use-auth-state";
 import { runUntilCompletion } from "@src/lib/agent";
 import { summarizeAction } from "@src/lib/ai/api/summarize-action";
 import { ActionMetadata } from "@src/lib/interface/action-metadata";
+import { AuthState } from "@src/lib/interface/auth-state";
 import { ExtensionState } from "@src/lib/interface/state";
 import { ThinkingState } from "@src/lib/interface/thinking-state";
 import {
@@ -21,6 +23,10 @@ export type CursorCoordinate = {
 };
 
 type MajordomoContextType = {
+  // Auth state
+  authState: AuthState;
+
+  // Working tab
   currentTabIsWorking: () => Promise<boolean>;
 
   // Saved states
@@ -63,6 +69,8 @@ const MajordomoContext = createContext<MajordomoContextType | undefined>(
 );
 
 export function MajordomoProvider({ children }: { children: React.ReactNode }) {
+  // Auth state from hook
+  const authState = useAuthState();
   // Thinking states
   const [stateTrigger, setStateTrigger] = useState(false);
   const [thinkingState, setThinkingState] = useState<ThinkingState>({
@@ -343,6 +351,7 @@ export function MajordomoProvider({ children }: { children: React.ReactNode }) {
   return (
     <MajordomoContext.Provider
       value={{
+        authState,
         currentTabIsWorking,
         loadState,
         clearState,

@@ -1,9 +1,11 @@
 import { ExtensionState } from "@src/lib/interface/state";
 
+import { AuthStateManager } from "./auth-state";
 import { ExtensionStateManager } from "./state";
 
 console.log("background script loaded");
 
+const authStateManager = AuthStateManager.getInstance();
 const extensionStateManager = ExtensionStateManager.getInstance();
 
 async function getCurrentTabId() {
@@ -183,6 +185,23 @@ chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
     abort().then(() => {
       sendResponse({ ok: true });
     });
+  }
+
+  return true;
+});
+
+chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
+  if (message.action === "auth_state_changed") {
+    authStateManager.updateUserSignedIn(message.isSignedIn);
+    sendResponse({ ok: true });
+  }
+
+  return true;
+});
+
+chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
+  if (message.action === "get_auth_state") {
+    sendResponse({ isSignedIn: authStateManager.getIsUserSignedIn() });
   }
 
   return true;

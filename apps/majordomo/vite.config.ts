@@ -48,6 +48,13 @@ export default defineConfig({
       '@pages': pagesDir,
     },
   },
+  server: {
+    port: 5173,
+    strictPort: true,
+    hmr: {
+      port: 5173
+    }
+  },
   plugins: [
     react(),
     crx({

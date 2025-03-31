@@ -17,6 +17,9 @@ if (DEV) {
   console.log("Surf server:", SERVER_URL);
 }
 
+export const VITE_CLERK_PUBLISHABLE_KEY = import.meta.env
+  .VITE_CLERK_PUBLISHABLE_KEY;
+
 export const IS_DEBUGGING = DEV && false;
 
 export const USE_AI_EVALS_FOR_PREV_ACTIONS = false;
