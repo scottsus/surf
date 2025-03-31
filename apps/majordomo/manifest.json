@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqRk8B4r26uecJD53G4wOCT17KlT8B3OCMnOX/HK3VqZ9QimXcFbxZWwpPiIXw5pwP3unKdp6cABbMPsxgd4LSvJUfnfDxI6AgXvfZurtVRFBWZmMFh2TAt1rREA4PQC9QyQpa9aJ/kl5uPqPx6/eZ0Q+W3CV4cDVkp5KseqGjTP9Y7kvUeoC4U/8/ExmcqD9DRw2rwuxUG2qwdcUq08QrkJE087PGIemsc9guXIpx2v6fcVBkoimFpAg68PH8y/n75RNE6+zhDZVey8j/cSXLNLoPF1JgR7rcwrT+eyCDytjSlnlo3lsFmbgSl1t3LdBBu1HqsdkqChFCijTFx6kOQIDAQAB",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxuIMqISblku/FubOutDhovozEHBonOOQLQtuz8iFJKePwXGOtY+Rheg8VDLfApx1e4RF7KsBLewYc4/IhDSZAmcWnjmFWY+ZgCDhG2oeohbwtCDxgI112yDpWN5iFhqGoUpQhqE5cnkLunAkXCf3qo4dsaY0g1Fbaw537uwIu0MB5vl/3u+KADYm0eueud7BzytESRltm6iIs1RF6NKtTgsX746mHUcjM0Mr16V+YfGr9vkOPYBAf6hUG+yZOCfwUdYmZPJ55dnTdjh8567GF6JwSa4xEMPSom5GV6T0InKKqnZjHCvJEcU9YOJo/v2mtkzx2aO1H8d6EFlXT2Sb5QIDAQAB",
   "name": "Surf",
   "description": "Equip your browser with AI superpowers",
   "options_ui": {

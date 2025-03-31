@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { ComponentType, useEffect, useRef, useState } from "react";
 
+import { AuthPage } from "../popup/auth";
 import { useMajordomo } from "./provider";
 
 const { DEV, VITE_INITIAL_COMMAND_PROMPT } = import.meta.env;
@@ -112,6 +113,7 @@ export function CommandBar() {
         overflow: "hidden",
       }}
     >
+      <AuthPage />
       <div className="p-4">
         <div
           className="flex w-full items-center"
