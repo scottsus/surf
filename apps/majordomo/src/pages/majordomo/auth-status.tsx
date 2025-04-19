@@ -26,31 +26,43 @@ export function AuthGate({
       }}
     >
       <h2 style={{ width: "100%", textAlign: "center", marginBottom: "3rem" }}>
-        Please login to continue using Surf by clicking on the 🏄‍♂️ popup
+        Surf is whitelist only 🤫
       </h2>
-      <p style={{ marginBottom: "2rem", lineHeight: "1.5", fontSize: "1rem" }}>
-        Once you&apos;re done, hit CMD+SHIFT+K again and we&apos;ll see you here
-        👋
+      <p
+        style={{
+          marginBottom: "3rem",
+          lineHeight: "1.5",
+          fontSize: "18px",
+          textAlign: "center",
+        }}
+      >
+        Please login by pressing the 🏄‍♂️ icon on your extensions bar
       </p>
       <button
         onClick={onClick}
         style={{
           display: "block",
           margin: "0 auto",
-          padding: "0.5rem 1rem",
-          backgroundColor: "#5B7EFF",
+          padding: "0.5rem 2rem",
+          backgroundColor: "#1e293b",
           color: "white",
           border: "none",
           borderRadius: "0.5rem",
-          fontSize: "1rem",
-          fontWeight: "500",
+          fontSize: "18px",
+          fontWeight: "600",
           cursor: "pointer",
           transition: "background-color 0.2s ease",
         }}
-        onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#4A6AE5")}
-        onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#5B7EFF")}
+        onMouseOver={(e) => {
+          e.currentTarget.style.backgroundColor = "#334155";
+          e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.1)";
+        }}
+        onMouseOut={(e) => {
+          e.currentTarget.style.backgroundColor = "#1e293b";
+          e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.05)";
+        }}
       >
-        OK
+        Ok 👌
       </button>
     </div>
   );

@@ -1,11 +1,11 @@
 {
   "name": "majordomo",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Equip your browser with AI superpowers.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/scottsus/majordomo.git"
+    "url": "https://github.com/scottsus/surf.git"
   },
   "scripts": {
     "build": "vite build",
