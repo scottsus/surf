@@ -98,135 +98,98 @@ async function abort() {
   chrome.runtime.reload();
 }
 
-chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
-  if (message.action === "get_tab_id") {
-    getCurrentTabId().then((id) => {
-      sendResponse({ id });
-    });
-
-    return true;
-  }
-});
-
-chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
-  if (message.action === "screenshot") {
-    screenshot().then((res) => {
-      sendResponse({ ok: res ? true : false, screenshot: res?.screenshot });
-    });
-
-    return true;
-  }
-});
-
-chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
-  if (message.action === "navigate") {
-    navigate({ url: message.url as string }).then(() => {
-      sendResponse({ ok: true });
-    });
-  }
-
-  return true;
-});
-
-chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
-  if (message.action === "refresh") {
-    refresh().then(() => {
-      sendResponse({ ok: true });
-    });
-
-    return true;
-  }
-});
-
-chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
-  if (message.action === "back") {
-    back().then(() => {
-      sendResponse({ ok: true });
-    });
-
-    return true;
-  }
-});
-
-chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
-  if (message.action === "load_state") {
-    sendResponse(extensionStateManager.loadState());
-  }
-
-  return true;
-});
-
-chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
-  if (message.action === "save_state") {
-    getCurrentTabId()
-      .then((currentTabId) => {
-        extensionStateManager.updateState({
-          ...message.state,
-          ...(currentTabId ? { workingTabId: currentTabId } : {}),
-        } as Partial<ExtensionState>);
-      })
-      .then(() => sendResponse({ ok: true }));
-  }
-
-  return true;
-});
-
-chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
-  if (message.action === "clear_state") {
-    extensionStateManager.clearState();
-    sendResponse({ ok: true });
-  }
-
-  return true;
-});
-
-chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
-  if (message.action === "abort") {
-    abort().then(() => {
-      sendResponse({ ok: true });
-    });
-  }
-
-  return true;
-});
-
-chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
-  if (message.action === "auth_state_changed") {
-    authStateManager.updateUserSignedIn(message.isSignedIn);
-    sendResponse({ ok: true });
-  }
-
-  return true;
-});
-
-chrome.runtime.onMessage.addListener((message, _, sendResponse) => {
-  if (message.action === "get_auth_state") {
-    sendResponse({ isSignedIn: authStateManager.getIsUserSignedIn() });
-  }
-
-  return true;
-});
-
 chrome.runtime.onMessage.addListener(async (message, _, sendResponse) => {
-  if (message.action !== "screencast_in_background") return;
+  const { action } = message;
 
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.id) {
-    console.error("tabId undefined");
-    return;
+  switch (action) {
+    case "get_tab_id":
+      getCurrentTabId().then((id) => {
+        sendResponse({ id });
+      });
+      return true;
+
+    case "screenshot":
+      screenshot().then((res) => {
+        sendResponse({ ok: res ? true : false, screenshot: res?.screenshot });
+      });
+      return true;
+
+    case "navigate":
+      navigate({ url: message.url as string }).then(() => {
+        sendResponse({ ok: true });
+      });
+      return true;
+
+    case "refresh":
+      refresh().then(() => {
+        sendResponse({ ok: true });
+      });
+      return true;
+
+    case "back":
+      back().then(() => {
+        sendResponse({ ok: true });
+      });
+      return true;
+
+    case "load_state":
+      sendResponse(extensionStateManager.loadState());
+      return true;
+
+    case "save_state":
+      getCurrentTabId()
+        .then((currentTabId) => {
+          extensionStateManager.updateState({
+            ...message.state,
+            ...(currentTabId ? { workingTabId: currentTabId } : {}),
+          } as Partial<ExtensionState>);
+        })
+        .then(() => sendResponse({ ok: true }));
+      return true;
+
+    case "clear_state":
+      extensionStateManager.clearState();
+      sendResponse({ ok: true });
+      return true;
+
+    case "abort":
+      abort().then(() => {
+        sendResponse({ ok: true });
+      });
+      return true;
+
+    case "auth_state_changed":
+      authStateManager.updateUserSignedIn(message.isSignedIn);
+      sendResponse({ ok: true });
+      return true;
+
+    case "get_auth_state":
+      sendResponse({ isSignedIn: authStateManager.getIsUserSignedIn() });
+      return true;
+
+    case "screencast_in_background":
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tab?.id) {
+        console.error("tabId undefined");
+        return;
+      }
+
+      const streamId = await new Promise<string>((resolve) => {
+        chrome.tabCapture.getMediaStreamId(
+          {
+            targetTabId: tab.id,
+            consumerTabId: tab.id,
+          },
+          resolve,
+        );
+      });
+
+      sendResponse({ streamId });
+      return true;
+
+    default:
+      return false;
   }
-
-  const streamId = await new Promise<string>((resolve) => {
-    chrome.tabCapture.getMediaStreamId(
-      {
-        targetTabId: tab.id,
-        consumerTabId: tab.id,
-      },
-      resolve,
-    );
-  });
-
-  sendResponse({ streamId });
 });
 
 // on tab change
